@@ -42,6 +42,7 @@ impl GemView {
     }
 
     fn render_gmi(&self, data: &str) {
+        self.clear();
         let buf = self.buffer();
         let mut iter;
         let nodes = gemtext::parse_gemtext(&data);
@@ -136,6 +137,14 @@ impl GemView {
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
+                    let viewer = self.clone();
+                    label.connect_activate_link(move |_,link| {
+                        match viewer.visit(link) {
+                            Err(e) => eprintln!("Error: {}", e),
+                            _ => {},
+                        };
+                        gtk::Inhibit(true)
+                    });
                 },
                 GemtextNode::Blockquote(text) => {
                     iter = buf.end_iter();
@@ -175,8 +184,25 @@ impl GemView {
         }
     }
 
+    pub fn clear(&self) {
+        let buf = self.buffer();
+        let (mut start, mut end) = buf.bounds();
+        buf.delete(&mut start, &mut end);
+    }
+
+    fn absolute_url(&self, url: &str) -> String {
+        if url.starts_with("gemini://") {
+            String::from(url)
+        } else if url.starts_with("//") {
+            format!("gemini:{}", url)
+        } else {
+            format!("{}{}", self.uri(), url)
+        }
+    }
+
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let mut uri = Url::try_from(addr)?;
+        let abs = self.absolute_url(addr);
+        let mut uri = Url::try_from(abs.as_str())?;
         loop {
             let response = request::make_request(&uri)?;
             match response.status {
