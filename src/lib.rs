@@ -1,10 +1,22 @@
 //! Contents
 //! ========
 //! - [Introduction](#introduction)
+//! - [Features](#features)
 //! - [Usage](#usage)
 //! ## Introduction
 //! GemView is a [gemini protocol](https://gemini.circumlunar.space/) browser widget
 //! for gtk+ (version 4) implemented in Rust.
+//! ## Features
+//! - [x] Browse and render gemini gemtext content
+//! - [ ] Display plain text over gemini
+//! - [ ] Browse and render gopher and plain text over gopher
+//! - [ ] Display images served over gemini/gopher
+//! - [ ] Open http(s) links in a *normal* browser
+//! - [x] User customizable fonts
+//! - [ ] User customizable colors
+//! - [ ] Back/forward list
+//! - [ ] History
+//!
 //! ## Usage
 //! ```Yaml
 //! [dependencies]
