@@ -379,6 +379,7 @@ impl GemView {
                 protocol::StatusCode::Success(_) => {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
+                    self.emit_by_name::<()>("page-loaded", &[&abs]);
                     break;
                 },
                 s => {

@@ -1,7 +1,9 @@
 use gtk::glib;
+use glib::subclass::Signal;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::pango::{FontDescription, Style, Weight};
+use once_cell::sync::Lazy;
 use std::cell::RefCell;
 
 
@@ -49,6 +51,18 @@ impl ObjectImpl for GemView {
         font.set_weight(Weight::Heavy);
         font.set_size(18);
         *self.font_h1.borrow_mut() = font
+    }
+
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+            vec![Signal::builder(
+                "page-loaded",
+                &[String::static_type().into()],
+                <()>::static_type().into(),
+            )
+            .build()]
+        });
+        SIGNALS.as_ref()
     }
 }
 
