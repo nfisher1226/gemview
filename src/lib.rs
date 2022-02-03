@@ -289,6 +289,7 @@ impl GemView {
                     buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_,link| {
+                        viewer.emit_by_name::<()>("page-load-started", &[&link]);
                         match viewer.visit(link) {
                             Err(e) => eprintln!("Error: {}", e),
                             _ => {},
