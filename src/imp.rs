@@ -64,6 +64,16 @@ impl ObjectImpl for GemView {
                 "page-load-started",
                 &[String::static_type().into()],
                 <()>::static_type().into(),
+            ).build(),
+            Signal::builder(
+                "page-load-redirect",
+                &[String::static_type().into()],
+                <()>::static_type().into(),
+            ).build(),
+            Signal::builder(
+                "page-load-failed",
+                &[String::static_type().into()],
+                <()>::static_type().into(),
             ).build()]
         });
         SIGNALS.as_ref()

@@ -56,6 +56,12 @@ use gtk::pango::{FontDescription, Style, Weight};
 mod imp;
 
 glib::wrapper! {
+    /// The gemini browser widget is a subclass of the `TextView` widget
+    ///
+    /// Signals (gemview specific)
+    /// - **page-load-started** - emitted when a page load request is initiated
+    /// - **page-load-failed** - emitted when a page load fails
+    /// - **page-loaded** - emitted when a page is successfully loaded
     pub struct GemView(ObjectSubclass<imp::GemView>)
         @extends gtk::TextView, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
@@ -160,6 +166,54 @@ impl GemView {
     pub fn set_font_h3(&self, font: FontDescription) {
         let imp = self.imp();
         *imp.font_h3.borrow_mut() = font;
+    }
+
+    pub fn connect_page_load_started<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-started", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_load_redirect<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-redirect", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_load_failed<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-failed", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_loaded<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-loaded", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
     }
 
     /// Renders the given `&str` as a gemtext document
@@ -289,9 +343,12 @@ impl GemView {
                     buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_,link| {
-                        viewer.emit_by_name::<()>("page-load-started", &[&link]);
                         match viewer.visit(link) {
-                            Err(e) => eprintln!("Error: {}", e),
+                            Err(e) => {
+                                eprintln!("Error: {}", e);
+                                let estr = format!("{:?}", e);
+                                viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
+                            },
                             _ => {},
                         };
                         gtk::Inhibit(true)
@@ -362,30 +419,52 @@ impl GemView {
 
     /// Retrieves and then displays the given uri
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr);
-        let mut uri = Url::try_from(abs.as_str())?;
+        self.set_uri(&abs);
+        let mut uri = match Url::try_from(abs.as_str()) {
+            Ok(u) => u,
+            Err(e) => {
+                let estr = format!("{:?}", e);
+                self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                return Err(e.into());
+            },
+        };
         loop {
-            let response = request::make_request(&uri)?;
+            let response = match request::make_request(&uri) {
+                Ok(r) => r,
+                Err(e) => {
+                    let estr = format!("{:?}", e);
+                    self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                    return Err(e.into());
+                },
+            };
             match response.status {
                 protocol::StatusCode::Redirect(c) => {
                     println!("Redirect code {} with meta {}", c, response.meta);
                     uri = match Url::try_from(response.meta.as_str()) {
-                        Ok(r) => r,
+                        Ok(r) => {
+                            self.set_uri(&r.to_string());
+                            r
+                        },
                         Err(e) => {
-                            eprintln!("{}", e);
-                            break;
+                            let estr = format!("{:?}", e);
+                            self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                            return Err(e.into());
                         },
                     };
                 },
                 protocol::StatusCode::Success(_) => {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
+                    self.set_uri(&uri.to_string());
                     self.emit_by_name::<()>("page-loaded", &[&abs]);
                     break;
                 },
                 s => {
-                    eprintln!("Unknown status code: {:?}", s);
-                    break;
+                    let estr = format!("{:?}", s);
+                    self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                    return Err(String::from("unknown-response-code").into());
                 },
             }
         }
