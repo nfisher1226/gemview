@@ -47,21 +47,17 @@
 use gmi::{gemtext, protocol, request};
 use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
-use glib::Object;
 use gtk::glib;
+use glib::Object;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::pango::{FontDescription, Style, Weight};
+use textwrap::fill;
 
 mod imp;
 
 glib::wrapper! {
     /// The gemini browser widget is a subclass of the `TextView` widget
-    ///
-    /// Signals (gemview specific)
-    /// - **page-load-started** - emitted when a page load request is initiated
-    /// - **page-load-failed** - emitted when a page load fails
-    /// - **page-loaded** - emitted when a page is successfully loaded
     pub struct GemView(ObjectSubclass<imp::GemView>)
         @extends gtk::TextView, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
@@ -168,54 +164,6 @@ impl GemView {
         *imp.font_h3.borrow_mut() = font;
     }
 
-    pub fn connect_page_load_started<F: Fn(&Self, String) + 'static>(
-        &self,
-        f: F,
-    ) -> glib::SignalHandlerId {
-        self.connect_local("page-load-started", true, move |values| {
-            let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
-            f(&obj, uri);
-            None
-        })
-    }
-
-    pub fn connect_page_load_redirect<F: Fn(&Self, String) + 'static>(
-        &self,
-        f: F,
-    ) -> glib::SignalHandlerId {
-        self.connect_local("page-load-redirect", true, move |values| {
-            let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
-            f(&obj, uri);
-            None
-        })
-    }
-
-    pub fn connect_page_load_failed<F: Fn(&Self, String) + 'static>(
-        &self,
-        f: F,
-    ) -> glib::SignalHandlerId {
-        self.connect_local("page-load-failed", true, move |values| {
-            let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
-            f(&obj, uri);
-            None
-        })
-    }
-
-    pub fn connect_page_loaded<F: Fn(&Self, String) + 'static>(
-        &self,
-        f: F,
-    ) -> glib::SignalHandlerId {
-        self.connect_local("page-loaded", true, move |values| {
-            let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
-            f(&obj, uri);
-            None
-        })
-    }
-
     /// Renders the given `&str` as a gemtext document
     fn render_gmi(&self, data: &str) {
         self.clear();
@@ -238,7 +186,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -256,7 +204,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -274,7 +222,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -292,7 +240,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -311,7 +259,7 @@ impl GemView {
                             font.size(),
                             font.style().stringify(),
                             "•",
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -334,10 +282,11 @@ impl GemView {
                             font.style().stringify(),
                             fixed,
                             match text {
-                                Some(t) => t,
-                                None => fixed.clone(),
+                                Some(t) => self.wrap_text(&t),
+                                None => self.wrap_text(&fixed),
                             },
                         )).build();
+                    label.set_cursor_from_name(Some("pointer"));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -357,7 +306,6 @@ impl GemView {
                 GemtextNode::Blockquote(text) => {
                     let font = self.font_quote();
                     iter = buf.end_iter();
-                    let fixed = text.replace("&", "&amp;");
                     buf.insert_markup(
                         &mut iter,
                         &format!(
@@ -370,7 +318,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            fixed,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -388,7 +336,7 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            text,
+                            self.wrap_text(&text),
                         ),
                     );
                 },
@@ -470,6 +418,66 @@ impl GemView {
         }
         self.set_uri(&uri.to_string());
         return Ok(())
+    }
+
+    pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
+        self.visit(&self.uri())
+    }
+
+    pub fn connect_page_load_started<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-started", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_load_redirect<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-redirect", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_load_failed<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-load-failed", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    pub fn connect_page_loaded<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("page-loaded", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    fn wrap_text(&self, text: &str) -> String {
+        let width: usize = match self.root() {
+            Some(win) => std::cmp::min((win.width() / 10).try_into().unwrap(), 200),
+            None => 200,
+        };
+        fill(glib::markup_escape_text(text).as_str(), width)
     }
 }
 

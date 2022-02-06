@@ -31,6 +31,7 @@ impl ObjectImpl for GemView {
     fn constructed(&self, obj: &Self::Type) {
         self.parent_constructed(obj);
         obj.set_editable(false);
+        obj.set_cursor_visible(false);
         *self.uri.borrow_mut() = String::from("about:blank");
         let mut font = FontDescription::new();
         font.set_family("Sans");
