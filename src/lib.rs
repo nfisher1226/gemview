@@ -47,6 +47,7 @@
 use gmi::{gemtext, protocol, request};
 use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
+use gtk::gio::{Menu, MenuItem};
 use gtk::glib;
 use glib::Object;
 use gtk::prelude::*;
@@ -250,7 +251,7 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">{} {}</span>\n",
+                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">• {}</span>\n",
                             match font.family() {
                                 Some(f) => String::from(f),
                                 None => String::from("Sans"),
@@ -258,7 +259,6 @@ impl GemView {
                             font.weight().stringify(),
                             font.size(),
                             font.style().stringify(),
-                            "•",
                             self.wrap_text(&text),
                         ),
                     );
@@ -287,6 +287,12 @@ impl GemView {
                             },
                         )).build();
                     label.set_cursor_from_name(Some("pointer"));
+                    let open_menu = Menu::new();
+                    let in_tab = MenuItem::new(Some("Open link in new tab"), None);
+                    let in_window = MenuItem::new(Some("Open link in new window"), None);
+                    open_menu.append_item(&in_tab);
+                    open_menu.append_item(&in_window);
+                    label.set_extra_menu(Some(&open_menu));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -306,6 +312,12 @@ impl GemView {
                 GemtextNode::Blockquote(text) => {
                     let font = self.font_quote();
                     iter = buf.end_iter();
+                    let anchor = buf.create_child_anchor(&mut iter);
+                    let quotebox = gtk::builders::BoxBuilder::new()
+                        .orientation(gtk::Orientation::Horizontal)
+                        .hexpand(true)
+                        .css_classes(vec!("blockquote".to_string()))
+                        .build();
                     buf.insert_markup(
                         &mut iter,
                         &format!(

@@ -10,6 +10,8 @@ use std::cell::RefCell;
 #[derive(Default)]
 pub struct GemView {
     pub uri: RefCell<String>,
+    pub back_list: RefCell<Vec<String>>,
+    pub forward_list:RefCell<Vec<String>>,
     pub font_paragraph: RefCell<FontDescription>,
     pub font_pre: RefCell<FontDescription>,
     pub font_quote: RefCell<FontDescription>,
