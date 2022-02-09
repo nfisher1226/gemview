@@ -417,8 +417,13 @@ impl GemView {
     }
 
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.append_history(addr.to_string());
-        self.load(addr)
+        match self.load(addr) {
+            Ok(_) => {
+                self.append_history(addr.to_string());
+                Ok(())
+            },
+            Err(e) => Err(e),
+        }
     }
 
     /// Retrieves and then displays the given uri
