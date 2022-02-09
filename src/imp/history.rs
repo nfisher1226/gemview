@@ -41,11 +41,11 @@ impl History {
         self.forward = vec![];
     }
 
-    pub fn has_back(&self) -> bool {
+    pub fn has_previous(&self) -> bool {
         !self.back.is_empty()
     }
 
-    pub fn has_forward(&self) -> bool {
+    pub fn has_next(&self) -> bool {
         !self.forward.is_empty()
     }
 }

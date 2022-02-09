@@ -98,9 +98,13 @@ impl GemView {
         imp.history.borrow_mut().previous()
     }
 
+    pub fn has_previous(&self) -> bool {
+        self.imp().history.borrow().has_previous()
+    }
+
     pub fn go_previous(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.previous() {
-            self.visit(&uri)
+            self.load(&uri)
         } else {
             Ok(())
         }
@@ -111,9 +115,13 @@ impl GemView {
         imp.history.borrow_mut().next()
     }
 
+    pub fn has_next(&self) -> bool {
+        self.imp().history.borrow().has_next()
+    }
+
     pub fn go_next(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.next() {
-            self.visit(&uri)
+            self.load(&uri)
         } else {
             Ok(())
         }
@@ -408,8 +416,13 @@ impl GemView {
         }
     }
 
-    /// Retrieves and then displays the given uri
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.append_history(addr.to_string());
+        self.load(addr)
+    }
+
+    /// Retrieves and then displays the given uri
+    fn load(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr);
         self.set_uri(&abs);
@@ -464,7 +477,7 @@ impl GemView {
     }
 
     pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.visit(&self.uri())
+        self.load(&self.uri())
     }
 
     pub fn connect_page_load_started<F: Fn(&Self, String) + 'static>(
