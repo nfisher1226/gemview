@@ -61,7 +61,7 @@ glib::wrapper! {
     /// The gemini browser widget is a subclass of the `TextView` widget
     pub struct GemView(ObjectSubclass<imp::GemView>)
         @extends gtk::TextView, gtk::Widget,
-        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable, gtk::Actionable;
     }
 
 impl GemView {
@@ -84,13 +84,44 @@ impl GemView {
     /// Returns the current uri being displayed
     pub fn uri(&self) -> String {
         let imp = self.imp();
-        imp.uri.borrow().clone()
+        imp.history.borrow().uri.clone()
     }
 
     /// Sets the current uri
     fn set_uri(&self, uri: &str) {
         let imp = self.imp();
-        *imp.uri.borrow_mut() = String::from(uri);
+        imp.history.borrow_mut().uri = String::from(uri);
+    }
+
+    fn previous(&self) -> Option<String> {
+        let imp = self.imp();
+        imp.history.borrow_mut().previous()
+    }
+
+    pub fn go_previous(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(uri) = self.previous() {
+            self.visit(&uri)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn next(&self) -> Option<String> {
+        let imp = self.imp();
+        imp.history.borrow_mut().next()
+    }
+
+    pub fn go_next(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(uri) = self.next() {
+            self.visit(&uri)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn append_history(&self, uri: String) {
+        let imp = self.imp();
+        imp.history.borrow_mut().append(uri);
     }
 
     /// Returns the font used to render "normal" elements

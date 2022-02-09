@@ -6,12 +6,12 @@ use gtk::pango::{FontDescription, Style, Weight};
 use once_cell::sync::Lazy;
 use std::cell::RefCell;
 
+mod history;
+pub use history::History;
 
 #[derive(Default)]
 pub struct GemView {
-    pub uri: RefCell<String>,
-    pub back_list: RefCell<Vec<String>>,
-    pub forward_list:RefCell<Vec<String>>,
+    pub history: RefCell<History>,
     pub font_paragraph: RefCell<FontDescription>,
     pub font_pre: RefCell<FontDescription>,
     pub font_quote: RefCell<FontDescription>,
@@ -34,7 +34,7 @@ impl ObjectImpl for GemView {
         self.parent_constructed(obj);
         obj.set_editable(false);
         obj.set_cursor_visible(false);
-        *self.uri.borrow_mut() = String::from("about:blank");
+        *self.history.borrow_mut() = History::default();
         let mut font = FontDescription::new();
         font.set_family("Sans");
         font.set_style(Style::Normal);
@@ -75,6 +75,16 @@ impl ObjectImpl for GemView {
             ).build(),
             Signal::builder(
                 "page-load-failed",
+                &[String::static_type().into()],
+                <()>::static_type().into(),
+            ).build(),
+            Signal::builder(
+                "new-tab-request",
+                &[String::static_type().into()],
+                <()>::static_type().into(),
+            ).build(),
+            Signal::builder(
+                "new-window-request",
                 &[String::static_type().into()],
                 <()>::static_type().into(),
             ).build()]
