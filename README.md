@@ -15,7 +15,7 @@ for gtk+ (version 4) implemented in Rust.
 - [ ] Open http(s) links in a *normal* browser
 - [x] User customizable fonts
 - [ ] User customizable colors
-- [ ] Back/forward list
+- [x] Back/forward list
 - [ ] History
 
 ## Usage

@@ -14,7 +14,7 @@
 //! - [ ] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [ ] User customizable colors
-//! - [ ] Back/forward list
+//! - [x] Back/forward list
 //! - [ ] History
 //!
 //! ## Usage
@@ -58,7 +58,8 @@ use textwrap::fill;
 mod imp;
 
 glib::wrapper! {
-    /// The gemini browser widget is a subclass of the `TextView` widget
+    /// The gemini browser widget is a subclass of the `TextView` widget which
+    /// has been customized for browsing [geminispace](https://gemini.circumlunar.space).
     pub struct GemView(ObjectSubclass<imp::GemView>)
         @extends gtk::TextView, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable, gtk::Actionable;
@@ -81,7 +82,7 @@ impl Default for GemView {
 }
 
 impl GemView {
-    /// Returns the current uri being displayed
+    /// Returns the current uri
     pub fn uri(&self) -> String {
         let imp = self.imp();
         imp.history.borrow().uri.clone()
@@ -98,10 +99,16 @@ impl GemView {
         imp.history.borrow_mut().previous()
     }
 
+    /// Returns `true` if there are any items in the `back` history list
     pub fn has_previous(&self) -> bool {
         self.imp().history.borrow().has_previous()
     }
 
+    /// If there are any items in the `back` history list, retrieves the most
+    /// recent one and visits that uri
+    ///
+    /// ## Errors
+    /// Propagates any page load errors
     pub fn go_previous(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.previous() {
             self.load(&uri)
@@ -115,10 +122,16 @@ impl GemView {
         imp.history.borrow_mut().next()
     }
 
+    /// Returns `true` if there are any items in the `forward` history list
     pub fn has_next(&self) -> bool {
         self.imp().history.borrow().has_next()
     }
 
+    /// If there are any items in the `forward` history list, retrieves the most
+    /// recent item and visits that uri
+    ///
+    /// ## Errors
+    /// Propagates any page load errors
     pub fn go_next(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.next() {
             self.load(&uri)
@@ -218,14 +231,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">{}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">{}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -236,14 +243,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">{}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">{}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -254,14 +255,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">{}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">{}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -272,14 +267,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">{}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">{}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -290,14 +279,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">• {}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">• {}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -311,14 +294,8 @@ impl GemView {
                         .use_markup(true)
                         .tooltip_text(&fixed)
                         .label(&format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\"><a href=\"{}\">{}</a></span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
+                            font.to_str(),
                             fixed,
                             match text {
                                 Some(t) => self.wrap_text(&t),
@@ -360,15 +337,9 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span background=\"{}\" font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">  {}</span>\n",
+                            "<span background=\"{}\" font=\"{}\">  {}</span>\n",
                             "grey",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -379,14 +350,8 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font_family=\"{}\" weight=\"{}\" size=\"{}pt\" style=\"{}\">  {}</span>\n",
-                            match font.family() {
-                                Some(f) => String::from(f),
-                                None => String::from("Sans"),
-                            },
-                            font.weight().stringify(),
-                            font.size(),
-                            font.style().stringify(),
+                            "<span font=\"{}\">  {}</span>\n",
+                            font.to_str(),
                             self.wrap_text(&text),
                         ),
                     );
@@ -416,13 +381,13 @@ impl GemView {
         }
     }
 
+    /// Parse the given uri and then visits the page
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.load(addr)?;
         self.append_history(self.uri());
         Ok(())
     }
 
-    /// Retrieves and then displays the given uri
     fn load(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr);
@@ -477,10 +442,16 @@ impl GemView {
         return Ok(())
     }
 
+    /// Reloads the current page
+    ///
+    /// ## Errors
+    /// Propagates ay page load errors
     pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.load(&self.uri())
     }
 
+    /// Connects to the "page-load-started" signal, emitted when the browser
+    /// begins loading a uri
     pub fn connect_page_load_started<F: Fn(&Self, String) + 'static>(
         &self,
         f: F,
@@ -493,6 +464,8 @@ impl GemView {
         })
     }
 
+    /// Connects to the "page-load-redirect" signal, emitted during a page load
+    /// whenever the browser encounters a redirect
     pub fn connect_page_load_redirect<F: Fn(&Self, String) + 'static>(
         &self,
         f: F,
@@ -505,6 +478,8 @@ impl GemView {
         })
     }
 
+    /// Connects to the "page-load-failed" signal, emitted whenever a page has
+    /// failed to load
     pub fn connect_page_load_failed<F: Fn(&Self, String) + 'static>(
         &self,
         f: F,
@@ -517,6 +492,8 @@ impl GemView {
         })
     }
 
+    /// Connects to the "page-loaded" signal, emitted when the browser has
+    /// successfully loaded a page
     pub fn connect_page_loaded<F: Fn(&Self, String) + 'static>(
         &self,
         f: F,
