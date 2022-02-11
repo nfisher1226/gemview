@@ -89,7 +89,7 @@ impl GemView {
     }
 
     /// Sets the current uri
-    fn set_uri(&self, uri: &str) {
+    pub fn set_uri(&self, uri: &str) {
         let imp = self.imp();
         imp.history.borrow_mut().uri = String::from(uri);
     }
@@ -384,14 +384,12 @@ impl GemView {
     /// Parse the given uri and then visits the page
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.load(addr)?;
-        self.append_history(self.uri());
         Ok(())
     }
 
     fn load(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr);
-        self.set_uri(&abs);
         let mut uri = match Url::try_from(abs.as_str()) {
             Ok(u) => u,
             Err(e) => {
@@ -414,7 +412,6 @@ impl GemView {
                     println!("Redirect code {} with meta {}", c, response.meta);
                     uri = match Url::try_from(response.meta.as_str()) {
                         Ok(r) => {
-                            self.set_uri(&r.to_string());
                             r
                         },
                         Err(e) => {
@@ -427,8 +424,9 @@ impl GemView {
                 protocol::StatusCode::Success(_) => {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
-                    self.set_uri(&uri.to_string());
-                    self.emit_by_name::<()>("page-loaded", &[&abs]);
+                    let uri_str = uri.to_string();
+                    self.emit_by_name::<()>("page-loaded", &[&uri_str]);
+                    self.append_history(uri_str);
                     break;
                 },
                 s => {
@@ -438,7 +436,6 @@ impl GemView {
                 },
             }
         }
-        self.set_uri(&uri.to_string());
         return Ok(())
     }
 
