@@ -111,7 +111,8 @@ impl GemView {
     /// Propagates any page load errors
     pub fn go_previous(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.previous() {
-            self.load(&uri)
+            _ = self.load(&uri)?;
+            Ok(())
         } else {
             Ok(())
         }
@@ -134,7 +135,8 @@ impl GemView {
     /// Propagates any page load errors
     pub fn go_next(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(uri) = self.next() {
-            self.load(&uri)
+            _ = self.load(&uri)?;
+            Ok(())
         } else {
             Ok(())
         }
@@ -383,11 +385,12 @@ impl GemView {
 
     /// Parse the given uri and then visits the page
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.load(addr)?;
+        let uri = self.load(addr)?;
+        self.append_history(uri);
         Ok(())
     }
 
-    fn load(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn load(&self, addr: &str) -> Result<String, Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr);
         let mut uri = match Url::try_from(abs.as_str()) {
@@ -426,8 +429,7 @@ impl GemView {
                     self.render_gmi(&data);
                     let uri_str = uri.to_string();
                     self.emit_by_name::<()>("page-loaded", &[&uri_str]);
-                    self.append_history(uri_str);
-                    break;
+                    return Ok(uri_str);
                 },
                 s => {
                     let estr = format!("{:?}", s);
@@ -436,7 +438,6 @@ impl GemView {
                 },
             }
         }
-        return Ok(())
     }
 
     /// Reloads the current page
@@ -444,7 +445,8 @@ impl GemView {
     /// ## Errors
     /// Propagates ay page load errors
     pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.load(&self.uri())
+        _ = self.load(&self.uri())?;
+        Ok(())
     }
 
     /// Connects to the "page-load-started" signal, emitted when the browser
