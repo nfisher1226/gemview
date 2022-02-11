@@ -142,9 +142,9 @@ impl GemView {
         }
     }
 
-    fn append_history(&self, uri: String) {
+    fn append_history(&self, uri: &str) {
         let imp = self.imp();
-        imp.history.borrow_mut().append(uri);
+        imp.history.borrow_mut().append(uri.to_string());
     }
 
     /// Returns the font used to render "normal" elements
@@ -386,7 +386,8 @@ impl GemView {
     /// Parse the given uri and then visits the page
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         let uri = self.load(addr)?;
-        self.append_history(uri);
+        self.append_history(&uri);
+        self.emit_by_name::<()>("page-loaded", &[&uri]);
         Ok(())
     }
 
@@ -428,7 +429,6 @@ impl GemView {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
                     let uri_str = uri.to_string();
-                    self.emit_by_name::<()>("page-loaded", &[&uri_str]);
                     return Ok(uri_str);
                 },
                 s => {
@@ -445,7 +445,8 @@ impl GemView {
     /// ## Errors
     /// Propagates ay page load errors
     pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
-        _ = self.load(&self.uri())?;
+        let uri = self.load(&self.uri())?;
+        self.emit_by_name::<()>("page-loaded", &[&uri]);
         Ok(())
     }
 
