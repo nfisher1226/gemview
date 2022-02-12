@@ -47,6 +47,7 @@
 use gmi::{gemtext, protocol, request};
 use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
+use url;
 use gtk::gio::{Menu, MenuItem};
 use gtk::glib;
 use glib::Object;
@@ -373,13 +374,17 @@ impl GemView {
         buf.delete(&mut start, &mut end);
     }
 
-    fn absolute_url(&self, url: &str) -> String {
-        if url.starts_with("gemini://") {
-            String::from(url)
-        } else if url.starts_with("//") {
-            format!("gemini:{}", url)
-        } else {
-            format!("{}{}", self.uri(), url)
+    fn absolute_url(&self, url: &str) -> Result<String, url::ParseError> {
+        match url::Url::parse(url) {
+            Ok(_) => Ok(url.to_string()),
+            Err(e) => match e {
+                url::ParseError::RelativeUrlWithoutBase => {
+                    let origin = url::Url::parse(&self.uri())?;
+                    let new = origin.join(url)?;
+                    Ok(new.to_string())
+                },
+                _ => Err(e),
+            }
         }
     }
 
@@ -393,7 +398,7 @@ impl GemView {
 
     fn load(&self, addr: &str) -> Result<String, Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
-        let abs = self.absolute_url(addr);
+        let abs = self.absolute_url(addr)?;
         let mut uri = match Url::try_from(abs.as_str()) {
             Ok(u) => u,
             Err(e) => {
