@@ -392,12 +392,14 @@ impl GemView {
     /// Parse the given uri and then visits the page
     pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         let uri = self.load(addr)?;
-        self.append_history(&uri);
-        self.emit_by_name::<()>("page-loaded", &[&uri]);
+        if let Some(uri) = uri {
+            self.append_history(&uri);
+            self.emit_by_name::<()>("page-loaded", &[&uri]);
+        }
         Ok(())
     }
 
-    fn load(&self, addr: &str) -> Result<String, Box<dyn std::error::Error>> {
+    fn load(&self, addr: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = self.absolute_url(addr)?;
         let mut uri = match Url::try_from(abs.as_str()) {
@@ -420,7 +422,7 @@ impl GemView {
             "http" | "https" => {
                 let uri = uri.to_string();
                 webbrowser::open(&uri)?;
-                return Ok(uri);
+                return Ok(None);
             },
             "gemini" | "mercury" => {},
             _ => return Err(String::from("unsupported-protocol").into()),
@@ -452,7 +454,7 @@ impl GemView {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
                     let uri_str = uri.to_string();
-                    return Ok(uri_str);
+                    return Ok(Some(uri_str));
                 },
                 s => {
                     let estr = format!("{:?}", s);
