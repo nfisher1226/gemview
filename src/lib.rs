@@ -11,7 +11,7 @@
 //! - [ ] Display plain text over gemini
 //! - [ ] Browse and render gopher and plain text over gopher
 //! - [ ] Display images served over gemini/gopher
-//! - [ ] Open http(s) links in a *normal* browser
+//! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [ ] User customizable colors
 //! - [x] Back/forward list
@@ -55,6 +55,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::pango::{FontDescription, Style, Weight};
 use textwrap::fill;
+use webbrowser;
 
 mod imp;
 
@@ -407,6 +408,21 @@ impl GemView {
                 return Err(e.into());
             },
         };
+        match uri.clone().scheme.unwrap().as_str() {
+            "gopher" => {
+                eprintln!("Gopher not yet supported");
+                return Err(String::from("unsupported-protocol").into());
+            },
+            "finger" => {
+                eprintln!("Finger not yet supported");
+                return Err(String::from("unsupported-protocol").into());
+            },
+            "http" | "https" => {
+                webbrowser::open(&uri.to_string())?;
+            },
+            "gemini" | "mercury" => {},
+            _ => return Err(String::from("unsupported-protocol").into()),
+        }
         loop {
             let response = match request::make_request(&uri) {
                 Ok(r) => r,
