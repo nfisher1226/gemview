@@ -418,7 +418,9 @@ impl GemView {
                 return Err(String::from("unsupported-protocol").into());
             },
             "http" | "https" => {
-                webbrowser::open(&uri.to_string())?;
+                let uri = uri.to_string();
+                webbrowser::open(&uri)?;
+                return Ok(uri);
             },
             "gemini" | "mercury" => {},
             _ => return Err(String::from("unsupported-protocol").into()),
