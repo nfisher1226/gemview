@@ -297,6 +297,7 @@ impl GemView {
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
                         .tooltip_text(&fixed)
+                        .css_classes(vec!("link".to_string()))
                         .label(&format!(
                             "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
                             font.to_str(),
