@@ -337,6 +337,10 @@ impl GemView {
                     let quotebox = gtk::builders::BoxBuilder::new()
                         .orientation(gtk::Orientation::Horizontal)
                         .hexpand(true)
+                        .margin_bottom(8)
+                        .margin_top(8)
+                        .margin_start(8)
+                        .margin_end(8)
                         .css_classes(vec!("blockquote".to_string()))
                         .build();
                     let label = gtk::builders::LabelBuilder::new()
