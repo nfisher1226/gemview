@@ -339,15 +339,18 @@ impl GemView {
                         .hexpand(true)
                         .css_classes(vec!("blockquote".to_string()))
                         .build();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span background=\"{}\" font=\"{}\">  {}</span>\n",
-                            "grey",
+                    let label = gtk::builders::LabelBuilder::new()
+                        .use_markup(true)
+                        .css_classes(vec!("blockquote".to_string()))
+                        .label(&format!(
+                            "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text),
-                        ),
-                    );
+                        )).build();
+                    quotebox.append(&label);
+                    self.add_child_at_anchor(&quotebox, &anchor);
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 },
                 GemtextNode::Preformatted(text,_) => {
                     let font = self.font_pre();
