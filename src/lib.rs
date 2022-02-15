@@ -364,7 +364,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">  {}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            &text,
                         ),
                     );
                 },
