@@ -44,28 +44,26 @@
 //! browser.visit("gemini://gemini.circumlunar.space");
 //! ```
 
-use gmi::{gemtext, protocol, request};
+use glib::Object;
 use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
-use url;
+use gmi::{gemtext, protocol, request};
 use gtk::gio::{Menu, MenuItem};
 use gtk::glib;
-use glib::Object;
+use gtk::pango::FontDescription;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::pango::{FontDescription, Style, Weight};
 use textwrap::fill;
-use webbrowser;
 
 mod imp;
 
 glib::wrapper! {
-    /// The gemini browser widget is a subclass of the `TextView` widget which
-    /// has been customized for browsing [geminispace](https://gemini.circumlunar.space).
-    pub struct GemView(ObjectSubclass<imp::GemView>)
-        @extends gtk::TextView, gtk::Widget,
-        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable, gtk::Actionable;
-    }
+/// The gemini browser widget is a subclass of the `TextView` widget which
+/// has been customized for browsing [geminispace](https://gemini.circumlunar.space).
+pub struct GemView(ObjectSubclass<imp::GemView>)
+    @extends gtk::TextView, gtk::Widget,
+    @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable, gtk::Actionable;
+}
 
 impl GemView {
     pub fn new() -> Self {
@@ -230,7 +228,7 @@ impl GemView {
         let mut iter;
         let mut preflag = false;
         let mut prebox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        let nodes = gemtext::parse_gemtext(&data);
+        let nodes = gemtext::parse_gemtext(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
@@ -249,7 +247,7 @@ impl GemView {
                             self.wrap_text(&text),
                         ),
                     );
-                },
+                }
                 GemtextNode::Heading(text) => {
                     if preflag {
                         iter = buf.end_iter();
@@ -266,7 +264,7 @@ impl GemView {
                             self.wrap_text(&text),
                         ),
                     );
-                },
+                }
                 GemtextNode::SubHeading(text) => {
                     if preflag {
                         iter = buf.end_iter();
@@ -283,7 +281,7 @@ impl GemView {
                             self.wrap_text(&text),
                         ),
                     );
-                },
+                }
                 GemtextNode::SubSubHeading(text) => {
                     if preflag {
                         iter = buf.end_iter();
@@ -300,7 +298,7 @@ impl GemView {
                             self.wrap_text(&text),
                         ),
                     );
-                },
+                }
                 GemtextNode::ListItem(text) => {
                     if preflag {
                         iter = buf.end_iter();
@@ -317,8 +315,8 @@ impl GemView {
                             self.wrap_text(&text),
                         ),
                     );
-                },
-                GemtextNode::Link(link,text) => {
+                }
+                GemtextNode::Link(link, text) => {
                     if preflag {
                         iter = buf.end_iter();
                         buf.insert(&mut iter, "\n");
@@ -326,7 +324,7 @@ impl GemView {
                     }
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
-                    let fixed = link.replace("&", "&amp;");
+                    let fixed = link.replace('&', "&amp;");
                     let anchor = buf.create_child_anchor(&mut iter);
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
@@ -339,7 +337,8 @@ impl GemView {
                                 Some(t) => self.wrap_text(&t),
                                 None => self.wrap_text(&fixed),
                             },
-                        )).build();
+                        ))
+                        .build();
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
                     let in_tab = MenuItem::new(Some("Open link in new tab"), None);
@@ -351,18 +350,15 @@ impl GemView {
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
-                    label.connect_activate_link(move |_,link| {
-                        match viewer.visit(link) {
-                            Err(e) => {
-                                eprintln!("Error: {}", e);
-                                let estr = format!("{:?}", e);
-                                viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
-                            },
-                            _ => {},
+                    label.connect_activate_link(move |_, link| {
+                        if let Err(e) = viewer.visit(link) {
+                            eprintln!("Error: {}", e);
+                            let estr = format!("{:?}", e);
+                            viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                         };
                         gtk::Inhibit(true)
                     });
-                },
+                }
                 GemtextNode::Blockquote(text) => {
                     if preflag {
                         iter = buf.end_iter();
@@ -380,22 +376,23 @@ impl GemView {
                         .margin_top(8)
                         .margin_start(8)
                         .margin_end(8)
-                        .css_classes(vec!("blockquote".to_string()))
+                        .css_classes(vec!["blockquote".to_string()])
                         .build();
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
-                        .css_classes(vec!("blockquote".to_string()))
+                        .css_classes(vec!["blockquote".to_string()])
                         .label(&format!(
                             "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text),
-                        )).build();
+                        ))
+                        .build();
                     quotebox.append(&label);
                     self.add_child_at_anchor(&quotebox, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
-                },
-                GemtextNode::Preformatted(text,_) => {
+                }
+                GemtextNode::Preformatted(text, _) => {
                     if !preflag {
                         prebox = gtk::builders::BoxBuilder::new()
                             .orientation(gtk::Orientation::Vertical)
@@ -405,7 +402,7 @@ impl GemView {
                             .margin_top(8)
                             .margin_start(8)
                             .margin_end(8)
-                            .css_classes(vec!("preformatted".to_string()))
+                            .css_classes(vec!["preformatted".to_string()])
                             .build();
                         iter = buf.end_iter();
                         let anchor = buf.create_child_anchor(&mut iter);
@@ -414,14 +411,15 @@ impl GemView {
                     let font = self.font_pre();
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
-                        .css_classes(vec!("preformatted".to_string()))
+                        .css_classes(vec!["preformatted".to_string()])
                         .label(&format!(
                             "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             &text,
-                        )).build();
+                        ))
+                        .build();
                     prebox.append(&label);
-                },
+                }
                 GemtextNode::EmptyLine => {
                     if preflag {
                         iter = buf.end_iter();
@@ -430,7 +428,7 @@ impl GemView {
                     }
                     let mut iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
-                },
+                }
             }
         }
     }
@@ -450,9 +448,9 @@ impl GemView {
                     let origin = url::Url::parse(&self.uri())?;
                     let new = origin.join(url)?;
                     Ok(new.to_string())
-                },
+                }
                 _ => Err(e),
-            }
+            },
         }
     }
 
@@ -475,23 +473,23 @@ impl GemView {
                 let estr = format!("{:?}", e);
                 self.emit_by_name::<()>("page-load-failed", &[&estr]);
                 return Err(e.into());
-            },
+            }
         };
         match uri.clone().scheme.unwrap().as_str() {
             "gopher" => {
                 eprintln!("Gopher not yet supported");
                 return Err(String::from("unsupported-protocol").into());
-            },
+            }
             "finger" => {
                 eprintln!("Finger not yet supported");
                 return Err(String::from("unsupported-protocol").into());
-            },
+            }
             "http" | "https" => {
                 let uri = uri.to_string();
                 webbrowser::open(&uri)?;
                 return Ok(None);
-            },
-            "gemini" | "mercury" => {},
+            }
+            "gemini" | "mercury" => {}
             _ => return Err(String::from("unsupported-protocol").into()),
         }
         loop {
@@ -501,33 +499,31 @@ impl GemView {
                     let estr = format!("{:?}", e);
                     self.emit_by_name::<()>("page-load-failed", &[&estr]);
                     return Err(e.into());
-                },
+                }
             };
             match response.status {
                 protocol::StatusCode::Redirect(c) => {
                     println!("Redirect code {} with meta {}", c, response.meta);
                     uri = match Url::try_from(response.meta.as_str()) {
-                        Ok(r) => {
-                            r
-                        },
+                        Ok(r) => r,
                         Err(e) => {
                             let estr = format!("{:?}", e);
                             self.emit_by_name::<()>("page-load-failed", &[&estr]);
                             return Err(e.into());
-                        },
+                        }
                     };
-                },
+                }
                 protocol::StatusCode::Success(_) => {
                     let data = String::from_utf8_lossy(&response.data);
                     self.render_gmi(&data);
                     let uri_str = uri.to_string();
                     return Ok(Some(uri_str));
-                },
+                }
                 s => {
                     let estr = format!("{:?}", s);
                     self.emit_by_name::<()>("page-load-failed", &[&estr]);
                     return Err(String::from("unknown-response-code").into());
-                },
+                }
             }
         }
     }
@@ -604,39 +600,5 @@ impl GemView {
             None => 200,
         };
         fill(glib::markup_escape_text(text).as_str(), width)
-    }
-}
-
-trait Stringify {
-    fn stringify(&self) -> String;
-}
-
-impl Stringify for Style {
-    fn stringify(&self) -> String {
-        String::from(match self {
-            Style::Oblique => "oblique",
-            Style::Italic => "italic",
-            _ => "normal",
-        })
-    }
-}
-
-impl Stringify for Weight {
-    fn stringify(&self) -> String {
-        String::from(match self {
-            Weight::Thin => "thin",
-            Weight::Ultralight => "ultralight",
-            Weight::Light => "light",
-            Weight::Semilight => "semilight",
-            Weight::Book => "book",
-            Weight::Normal => "normal",
-            Weight::Medium => "medium",
-            Weight::Semibold => "semibold",
-            Weight::Bold => "bold",
-            Weight::Ultrabold => "bold",
-            Weight::Heavy => "heavy",
-            Weight::Ultraheavy => "ultraheavy",
-            _ => "normal",
-        })
     }
 }

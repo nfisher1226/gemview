@@ -1,8 +1,8 @@
-use gtk::glib;
 use glib::subclass::Signal;
+use gtk::glib;
+use gtk::pango::{FontDescription, Style, Weight};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::pango::{FontDescription, Style, Weight};
 use once_cell::sync::Lazy;
 use std::cell::RefCell;
 
@@ -58,36 +58,44 @@ impl ObjectImpl for GemView {
 
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-            vec![Signal::builder(
-                "page-loaded",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build(),
-            Signal::builder(
-                "page-load-started",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build(),
-            Signal::builder(
-                "page-load-redirect",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build(),
-            Signal::builder(
-                "page-load-failed",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build(),
-            Signal::builder(
-                "new-tab-request",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build(),
-            Signal::builder(
-                "new-window-request",
-                &[String::static_type().into()],
-                <()>::static_type().into(),
-            ).build()]
+            vec![
+                Signal::builder(
+                    "page-loaded",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "page-load-started",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "page-load-redirect",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "page-load-failed",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "new-tab-request",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "new-window-request",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+            ]
         });
         SIGNALS.as_ref()
     }
