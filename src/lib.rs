@@ -222,7 +222,7 @@ impl GemView {
     }
 
     /// Renders the given `&str` as a gemtext document
-    fn render_gmi(&self, data: &str) {
+    pub fn render_gmi(&self, data: &str) {
         self.clear();
         let buf = self.buffer();
         let mut iter;
