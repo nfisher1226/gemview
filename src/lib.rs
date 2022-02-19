@@ -476,23 +476,10 @@ impl GemView {
             }
         };
         match uri.clone().scheme.unwrap().as_str() {
-            "gopher" => {
-                eprintln!("Gopher not yet supported");
-                return Err(String::from("unsupported-protocol").into());
-            }
-            "finger" => {
-                eprintln!("Finger not yet supported");
-                return Err(String::from("unsupported-protocol").into());
-            }
-            "http" | "https" => {
-                let uri = uri.to_string();
-                webbrowser::open(&uri)?;
-                return Ok(None);
-            }
             "gemini" | "mercury" => {}
-            s => {
+            _s => {
                 self.emit_by_name::<()>("request-unsupported-scheme", &[&abs.as_str()]);
-                return Err(format!("unsupported-scheme: {}", s).into());
+                //return Err(format!("unsupported-scheme: {}", s).into());
             }
         }
         loop {
