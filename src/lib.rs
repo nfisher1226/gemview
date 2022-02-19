@@ -490,7 +490,10 @@ impl GemView {
                 return Ok(None);
             }
             "gemini" | "mercury" => {}
-            _ => return Err(String::from("unsupported-protocol").into()),
+            s => {
+                self.emit_by_name::<()>("request-unsupported-scheme", &[&abs.as_str()]);
+                return Err(format!("unsupported-scheme: {}", s).into());
+            }
         }
         loop {
             let response = match request::make_request(&uri) {
@@ -589,6 +592,20 @@ impl GemView {
         self.connect_local("page-loaded", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
             let uri = obj.uri();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    /// Connects to the "request-unsupported-scheme" signal, emitted when the
+    /// browser has had a request to load a page with an unsupported scheme
+    pub fn connect_request_unsupported_scheme<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-unsupported-scheme", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
             None
         })

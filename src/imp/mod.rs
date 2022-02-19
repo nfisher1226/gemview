@@ -84,6 +84,12 @@ impl ObjectImpl for GemView {
                 )
                 .build(),
                 Signal::builder(
+                    "request-unsupported-scheme",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
                     "new-tab-request",
                     &[String::static_type().into()],
                     <()>::static_type().into(),
