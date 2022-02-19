@@ -440,16 +440,24 @@ impl GemView {
         buf.delete(&mut start, &mut end);
     }
 
-    fn absolute_url(&self, url: &str) -> Result<String, url::ParseError> {
+    fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
         match url::Url::parse(url) {
-            Ok(_) => Ok(url.to_string()),
+            Ok(u) => {
+                match u.scheme() {
+                    "gemini" | "mercury" => Ok(url.to_string()),
+                    s => {
+                        self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
+                        Err(format!("unsupported-scheme: {}", s).into())
+                    },
+                }
+            },
             Err(e) => match e {
                 url::ParseError::RelativeUrlWithoutBase => {
                     let origin = url::Url::parse(&self.uri())?;
                     let new = origin.join(url)?;
                     Ok(new.to_string())
                 }
-                _ => Err(e),
+                _ => Err(e.into()),
             },
         }
     }
@@ -475,13 +483,6 @@ impl GemView {
                 return Err(e.into());
             }
         };
-        match uri.clone().scheme.unwrap().as_str() {
-            "gemini" | "mercury" => {}
-            _s => {
-                self.emit_by_name::<()>("request-unsupported-scheme", &[&abs.as_str()]);
-                //return Err(format!("unsupported-scheme: {}", s).into());
-            }
-        }
         loop {
             let response = match request::make_request(&uri) {
                 Ok(r) => r,
