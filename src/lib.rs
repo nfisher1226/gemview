@@ -474,7 +474,16 @@ impl GemView {
 
     fn load(&self, addr: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
-        let abs = self.absolute_url(addr)?;
+        let abs = match self.absolute_url(addr) {
+            Ok(s) => s,
+            Err(e) => {
+                if format!("{:?}", e).contains("unsupported-scheme") {
+                    return Ok(None);
+                } else {
+                    return Err(e).into();
+                }
+            }
+        };
         let mut uri = match Url::try_from(abs.as_str()) {
             Ok(u) => u,
             Err(e) => {
