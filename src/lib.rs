@@ -324,18 +324,22 @@ impl GemView {
                     }
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
-                    let fixed = link.replace('&', "&amp;");
+                    let link = link.replace('&', "&amp;");
                     let anchor = buf.create_child_anchor(&mut iter);
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
-                        .tooltip_text(&fixed)
+                        .tooltip_text(&if link.len() < 80 {
+                            link.clone()
+                        } else {
+                            format!("{}...", &link[..80])
+                        })
                         .label(&format!(
                             "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
                             font.to_str(),
-                            fixed,
+                            &link,
                             match text {
                                 Some(t) => self.wrap_text(&t),
-                                None => self.wrap_text(&fixed),
+                                None => self.wrap_text(&link),
                             },
                         ))
                         .build();
@@ -442,13 +446,11 @@ impl GemView {
 
     fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
         match url::Url::parse(url) {
-            Ok(u) => {
-                match u.scheme() {
-                    "gemini" | "mercury" => Ok(url.to_string()),
-                    s => {
-                        self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
-                        Err(format!("unsupported-scheme: {}", s).into())
-                    },
+            Ok(u) => match u.scheme() {
+                "gemini" | "mercury" => Ok(url.to_string()),
+                s => {
+                    self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
+                    Err(format!("unsupported-scheme: {}", s).into())
                 }
             },
             Err(e) => match e {
