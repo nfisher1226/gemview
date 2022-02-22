@@ -221,6 +221,14 @@ impl GemView {
         *imp.font_h3.borrow_mut() = font;
     }
 
+    /// Renders plain text
+    pub fn render_text(&self, data: &str) {
+        self.clear();
+        let buf = self.buffer();
+        let mut iter = buf.end_iter();
+        buf.insert(&mut iter, data);
+    }
+
     /// Renders the given `&str` as a gemtext document
     pub fn render_gmi(&self, data: &str) {
         self.clear();
