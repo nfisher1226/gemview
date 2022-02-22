@@ -144,7 +144,7 @@ impl GemView {
         }
     }
 
-    fn append_history(&self, uri: &str) {
+    pub fn append_history(&self, uri: &str) {
         let imp = self.imp();
         imp.history.borrow_mut().append(uri.to_string());
     }
@@ -225,8 +225,45 @@ impl GemView {
     pub fn render_text(&self, data: &str) {
         self.clear();
         let buf = self.buffer();
+        let prebox = gtk::builders::BoxBuilder::new()
+            .orientation(gtk::Orientation::Vertical)
+            .hexpand(true)
+            .halign(gtk::Align::Fill)
+            .margin_bottom(8)
+            .margin_top(8)
+            .margin_start(8)
+            .margin_end(8)
+            .css_classes(vec!["preformatted".to_string()])
+            .build();
         let mut iter = buf.end_iter();
-        buf.insert(&mut iter, data);
+        let anchor = buf.create_child_anchor(&mut iter);
+        self.add_child_at_anchor(&prebox, &anchor);
+        let text = glib::markup_escape_text(data);
+        let font = self.font_pre();
+        let label = gtk::builders::LabelBuilder::new()
+            .use_markup(true)
+            .css_classes(vec!["preformatted".to_string()])
+            .label(&format!(
+                "<span font=\"{}\">{}</span>",
+                font.to_str(),
+                &text,
+            ))
+            .build();
+        prebox.append(&label);
+    }
+
+    /// Renders an image
+    pub fn render_image(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
+        self.clear();
+        let buf = self.buffer();
+        let mut iter = buf.end_iter();
+        let anchor = buf.create_child_anchor(&mut iter);
+        let image = gtk::Image::from_pixbuf(Some(pixbuf));
+        image.set_hexpand(true);
+        image.set_halign(gtk::Align::Fill);
+        image.set_css_classes(&["image"]);
+        self.add_child_at_anchor(&image, &anchor);
+        image
     }
 
     /// Renders the given `&str` as a gemtext document
