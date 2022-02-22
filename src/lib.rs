@@ -252,8 +252,8 @@ impl GemView {
         prebox.append(&label);
     }
 
-    /// Renders an image
-    pub fn render_image(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
+    /// Renders a [`gtk::gdk_pixbuf::Pixbuf`]
+    pub fn render_pixbuf(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
         self.clear();
         let buf = self.buffer();
         let mut iter = buf.end_iter();
