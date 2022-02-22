@@ -8,9 +8,9 @@
 //! for gtk+ (version 4) implemented in Rust.
 //! ## Features
 //! - [x] Browse and render gemini gemtext content
-//! - [ ] Display plain text over gemini
+//! - [x] Display plain text over gemini
+//! - [x] Display images over gemini
 //! - [ ] Browse and render gopher and plain text over gopher
-//! - [ ] Display images served over gemini/gopher
 //! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [ ] User customizable colors
@@ -48,7 +48,8 @@ use glib::Object;
 use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
 use gmi::{gemtext, protocol, request};
-use gtk::gio::{Menu, MenuItem};
+use gtk::gdk_pixbuf::Pixbuf;
+use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem};
 use gtk::glib;
 use gtk::pango::FontDescription;
 use gtk::prelude::*;
@@ -250,6 +251,16 @@ impl GemView {
             ))
             .build();
         prebox.append(&label);
+    }
+
+    /// Renders a Vec<u8> into an image
+    pub fn render_image_from_bytes(&self, bytes: &Vec<u8>) {
+        let bytes = gtk::glib::Bytes::from(bytes);
+        let stream = MemoryInputStream::from_bytes(&bytes);
+        if let Ok(pixbuf) = Pixbuf::from_stream(&stream, Option::<&Cancellable>::None) {
+            let img = self.render_pixbuf(&pixbuf);
+            img.set_pixel_size(self.height() - 50);
+        }
     }
 
     /// Renders a [`gtk::gdk_pixbuf::Pixbuf`]
@@ -561,8 +572,13 @@ impl GemView {
                     };
                 }
                 protocol::StatusCode::Success(_) => {
-                    let data = String::from_utf8_lossy(&response.data);
-                    self.render_gmi(&data);
+                    if response.meta.starts_with("text/gemini") {
+                        self.render_gmi(&String::from_utf8_lossy(&response.data));
+                    } else if response.meta.starts_with("text/plain") {
+                        self.render_text(&String::from_utf8_lossy(&response.data));
+                    } else if response.meta.starts_with("image") {
+                        self.render_image_from_bytes(&response.data);
+                    }
                     let uri_str = uri.to_string();
                     return Ok(Some(uri_str));
                 }
