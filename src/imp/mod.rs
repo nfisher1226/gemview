@@ -6,12 +6,15 @@ use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 use std::cell::RefCell;
 
+mod buffer;
+pub use buffer::Buffer;
 mod history;
 pub use history::History;
 
 #[derive(Default)]
 pub struct GemView {
     pub history: RefCell<History>,
+    pub buffer:RefCell<Buffer>,
     pub font_paragraph: RefCell<FontDescription>,
     pub font_pre: RefCell<FontDescription>,
     pub font_quote: RefCell<FontDescription>,
@@ -90,13 +93,19 @@ impl ObjectImpl for GemView {
                 )
                 .build(),
                 Signal::builder(
-                    "new-tab-request",
+                    "request-download",
                     &[String::static_type().into()],
                     <()>::static_type().into(),
                 )
                 .build(),
                 Signal::builder(
-                    "new-window-request",
+                    "request-new-tab",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "request-new-window",
                     &[String::static_type().into()],
                     <()>::static_type().into(),
                 )

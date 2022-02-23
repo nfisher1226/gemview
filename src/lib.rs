@@ -85,19 +85,16 @@ impl Default for GemView {
 impl GemView {
     /// Returns the current uri
     pub fn uri(&self) -> String {
-        let imp = self.imp();
-        imp.history.borrow().uri.clone()
+        self.imp().history.borrow().uri.clone()
     }
 
     /// Sets the current uri
     pub fn set_uri(&self, uri: &str) {
-        let imp = self.imp();
-        imp.history.borrow_mut().uri = String::from(uri);
+        self.imp().history.borrow_mut().uri = String::from(uri);
     }
 
     fn previous(&self) -> Option<String> {
-        let imp = self.imp();
-        imp.history.borrow_mut().previous()
+        self.imp().history.borrow_mut().previous()
     }
 
     /// Returns `true` if there are any items in the `back` history list
@@ -146,80 +143,83 @@ impl GemView {
     }
 
     pub fn append_history(&self, uri: &str) {
-        let imp = self.imp();
-        imp.history.borrow_mut().append(uri.to_string());
+        self.imp().history.borrow_mut().append(uri.to_string());
+    }
+
+    pub fn buffer_mime(&self) -> String {
+        self.imp().buffer.borrow().mime.clone()
+    }
+
+    pub fn set_buffer_mime(&self, mime: &str) {
+        self.imp().buffer.borrow_mut().mime = mime.to_string();
+    }
+
+    pub fn buffer_content(&self) -> Vec<u8> {
+        self.imp().buffer.borrow().content.clone()
+    }
+
+    pub fn set_buffer_content(&self, content: &Vec<u8>) {
+        self.imp().buffer.borrow_mut().content = content.clone();
     }
 
     /// Returns the font used to render "normal" elements
     pub fn font_paragraph(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_paragraph.borrow().clone()
+        self.imp().font_paragraph.borrow().clone()
     }
 
     /// Sets the font used to render "normal" elements
     pub fn set_font_paragraph(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_paragraph.borrow_mut() = font;
+        *self.imp().font_paragraph.borrow_mut() = font;
     }
 
     /// Returns the font used to render "preformatted" elements
     pub fn font_pre(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_pre.borrow().clone()
+        self.imp().font_pre.borrow().clone()
     }
 
     /// Sets the font used to render "preformatted" elements
     pub fn set_font_pre(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_pre.borrow_mut() = font;
+        *self.imp().font_pre.borrow_mut() = font;
     }
 
     /// Returns the font used to render "blockquote" elements
     pub fn font_quote(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_quote.borrow().clone()
+        self.imp().font_quote.borrow().clone()
     }
 
     /// Sets the font used to render "blockquote" elements
     pub fn set_font_quote(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_quote.borrow_mut() = font;
+        *self.imp().font_quote.borrow_mut() = font;
     }
 
     /// Returns the font used to render H1 heading elements
     pub fn font_h1(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_h1.borrow().clone()
+        self.imp().font_h1.borrow().clone()
     }
 
     /// Sets the font used to render H1 heading elements
     pub fn set_font_h1(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_h1.borrow_mut() = font;
+        *self.imp().font_h1.borrow_mut() = font;
     }
 
     /// Returns the font used to render H2 heading elements
     pub fn font_h2(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_h2.borrow().clone()
+        self.imp().font_h2.borrow().clone()
     }
 
     /// Sets the font used to render H2 heading elements
     pub fn set_font_h2(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_h2.borrow_mut() = font;
+        *self.imp().font_h2.borrow_mut() = font;
     }
 
     /// Returns the font used to render H3 heading elements
     pub fn font_h3(&self) -> FontDescription {
-        let imp = self.imp();
-        imp.font_h3.borrow().clone()
+        self.imp().font_h3.borrow().clone()
     }
 
     /// Sets the font used to render H3 heading elements
     pub fn set_font_h3(&self, font: FontDescription) {
-        let imp = self.imp();
-        *imp.font_h3.borrow_mut() = font;
+        *self.imp().font_h3.borrow_mut() = font;
     }
 
     /// Renders plain text
@@ -572,12 +572,16 @@ impl GemView {
                     };
                 }
                 protocol::StatusCode::Success(_) => {
+                    self.set_buffer_mime(&response.meta);
+                    self.set_buffer_content(&response.data);
                     if response.meta.starts_with("text/gemini") {
                         self.render_gmi(&String::from_utf8_lossy(&response.data));
                     } else if response.meta.starts_with("text/plain") {
                         self.render_text(&String::from_utf8_lossy(&response.data));
                     } else if response.meta.starts_with("image") {
                         self.render_image_from_bytes(&response.data);
+                    } else {
+                        self.emit_by_name::<()>("request-download", &[&response.meta]);
                     }
                     let uri_str = uri.to_string();
                     return Ok(Some(uri_str));
