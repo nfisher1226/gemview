@@ -11,17 +11,18 @@ for gtk+ (version 4) implemented in Rust.
 - [x] Browse and render gemini gemtext content
 - [x] Display plain text over gemini
 - [x] Display images over gemini
+- [x] Display text and images from `data://` url's
 - [ ] Browse and render gopher and plain text over gopher
 - [x] Open http(s) links in a *normal* browser
 - [x] User customizable fonts
-- [ ] User customizable colors
+- [x] User customizable colors (via CSS)
 - [x] Back/forward list
 - [ ] History
 
 ## Usage
 ```Yaml
 [dependencies]
-gemview = { git = "https://codeberg.org/jeang3nie/gemview" }
+gemview = 0.1.0
 
 [dependencies.gtk]
 version = "~0.4"

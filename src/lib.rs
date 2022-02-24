@@ -10,17 +10,18 @@
 //! - [x] Browse and render gemini gemtext content
 //! - [x] Display plain text over gemini
 //! - [x] Display images over gemini
+//! - [x] Display text and images from `data://` url's
 //! - [ ] Browse and render gopher and plain text over gopher
 //! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
-//! - [ ] User customizable colors
+//! - [x] User customizable colors (via CSS)
 //! - [x] Back/forward list
 //! - [ ] History
 //!
 //! ## Usage
 //! ```Yaml
 //! [dependencies]
-//! gemview = { git = "https://codeberg.org/jeang3nie/gemview" }
+//! gemview = 0.1.0
 //!
 //! [dependencies.gtk]
 //! version = "~0.4"
@@ -719,8 +720,8 @@ impl GemView {
 
     fn wrap_text(&self, text: &str) -> String {
         let width: usize = match self.root() {
-            Some(win) => std::cmp::min((win.width() / 10).try_into().unwrap(), 200),
-            None => 200,
+            Some(win) => std::cmp::min((win.width() / 10).try_into().unwrap(), 175),
+            None => 175,
         };
         fill(glib::markup_escape_text(text).as_str(), width)
     }
