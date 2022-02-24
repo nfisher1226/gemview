@@ -59,7 +59,7 @@ use textwrap::fill;
 use std::error::Error;
 
 mod scheme;
-use scheme::data::{ Data, DataUrl, MimeType };
+use scheme::data::{Data, DataUrl, MimeType};
 mod imp;
 
 glib::wrapper! {
@@ -162,8 +162,8 @@ impl GemView {
         self.imp().buffer.borrow().content.clone()
     }
 
-    pub fn set_buffer_content(&self, content: &Vec<u8>) {
-        self.imp().buffer.borrow_mut().content = content.clone();
+    pub fn set_buffer_content(&self, content: &[u8]) {
+        self.imp().buffer.borrow_mut().content = content.to_vec();
     }
 
     /// Returns the font used to render "normal" elements
@@ -542,7 +542,7 @@ impl GemView {
                 if format!("{:?}", e).contains("unsupported-scheme") {
                     return Ok(None);
                 } else {
-                    return Err(e).into();
+                    return Err(e);
                 }
             }
         };
@@ -612,28 +612,27 @@ impl GemView {
             MimeType::TextPlain => {
                 if let Data::Text(payload) = data.decode()? {
                     self.render_text(&payload);
-                    return Ok(Some(url.to_string()));
+                    Ok(Some(url.to_string()))
                 } else {
                     unreachable!();
                 }
-            },
+            }
             MimeType::TextGemini => {
                 if let Data::Text(payload) = data.decode()? {
                     self.render_gmi(&payload);
-                    return Ok(Some(url.to_string()));
+                    Ok(Some(url.to_string()))
                 } else {
                     unreachable!();
                 }
-
-            },
+            }
             MimeType::ImagePng | MimeType::ImageJpeg | MimeType::ImageSvg => {
                 if let Data::Bytes(payload) = data.decode()? {
                     self.render_image_from_bytes(&payload);
-                    return Ok(Some(url.to_string()));
+                    Ok(Some(url.to_string()))
                 } else {
                     unreachable!();
                 }
-            },
+            }
             _ => Err(String::from("Unrecognized data type").into()),
         }
     }

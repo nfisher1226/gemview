@@ -1,6 +1,6 @@
 use std::error::Error;
 
-#[derive(Clone, Copy, Debug,PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MimeType {
     TextPlain,
     TextGemini,
@@ -10,14 +10,14 @@ pub enum MimeType {
     Unknown,
 }
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DataUrl {
     mime: MimeType,
     base64: bool,
     data: String,
 }
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Data {
     Text(String),
     Bytes(Vec<u8>),
@@ -27,20 +27,20 @@ impl TryFrom<&str> for DataUrl {
     type Error = &'static str;
 
     fn try_from(url: &str) -> Result<Self, Self::Error> {
-        let (scheme,remainder) = match url.split_once(":") {
-            Some((s,r)) => (s,r),
+        let (scheme, remainder) = match url.split_once(':') {
+            Some((s, r)) => (s, r),
             None => return Err("Malformed url"),
         };
         if scheme != "data" {
             return Err("Not a data url");
         }
-        let (mime,data) = match remainder.split_once(",") {
-            Some((m,d)) => (m,d),
+        let (mime, data) = match remainder.split_once(',') {
+            Some((m, d)) => (m, d),
             None => return Err("Malformed url"),
         };
         let base64 = mime.contains("base64");
-        let mime = match mime.split_once(";") {
-            Some((m,_)) => m,
+        let mime = match mime.split_once(';') {
+            Some((m, _)) => m,
             _ => mime,
         };
         let mimetype = match mime {
@@ -74,7 +74,7 @@ impl DataUrl {
                     urlencoding::decode(&self.data)?.to_string()
                 };
                 Ok(Data::Text(pl))
-            },
+            }
             MimeType::ImageJpeg | MimeType::ImagePng | MimeType::ImageSvg => {
                 let pl = if self.base64 {
                     base64::decode(&self.data)?
@@ -82,7 +82,7 @@ impl DataUrl {
                     self.data.as_bytes().to_vec()
                 };
                 Ok(Data::Bytes(pl))
-            },
+            }
             MimeType::Unknown => Err(String::from("Cannot decode unknown mimetype").into()),
         }
     }

@@ -14,7 +14,7 @@ pub use history::History;
 #[derive(Default)]
 pub struct GemView {
     pub history: RefCell<History>,
-    pub buffer:RefCell<Buffer>,
+    pub buffer: RefCell<Buffer>,
     pub font_paragraph: RefCell<FontDescription>,
     pub font_pre: RefCell<FontDescription>,
     pub font_quote: RefCell<FontDescription>,

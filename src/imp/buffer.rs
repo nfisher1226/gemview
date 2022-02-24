@@ -11,7 +11,7 @@ impl Buffer {
     pub fn from_gmi_response(response: Response) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             mime: response.meta.clone(),
-            content: response.data.clone(),
+            content: response.data,
         })
     }
 }
