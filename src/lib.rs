@@ -370,7 +370,7 @@ impl GemView {
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">• {}</span>\n",
+                            "<span font=\"{}\">  • {}</span>\n",
                             font.to_str(),
                             self.wrap_text(&text),
                         ),
