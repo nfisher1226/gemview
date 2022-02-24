@@ -56,6 +56,10 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use textwrap::fill;
 
+use std::error::Error;
+
+mod scheme;
+use scheme::data::{ Data, DataUrl, MimeType };
 mod imp;
 
 glib::wrapper! {
@@ -503,7 +507,7 @@ impl GemView {
     fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
         match url::Url::parse(url) {
             Ok(u) => match u.scheme() {
-                "gemini" | "mercury" => Ok(url.to_string()),
+                "gemini" | "mercury" | "data" => Ok(url.to_string()),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
                     Err(format!("unsupported-scheme: {}", s).into())
@@ -521,7 +525,7 @@ impl GemView {
     }
 
     /// Parse the given uri and then visits the page
-    pub fn visit(&self, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn visit(&self, addr: &str) -> Result<(), Box<dyn Error>> {
         let uri = self.load(addr)?;
         if let Some(uri) = uri {
             self.append_history(&uri);
@@ -530,7 +534,7 @@ impl GemView {
         Ok(())
     }
 
-    fn load(&self, addr: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    fn load(&self, addr: &str) -> Result<Option<String>, Box<dyn Error>> {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let abs = match self.absolute_url(addr) {
             Ok(s) => s,
@@ -542,6 +546,13 @@ impl GemView {
                 }
             }
         };
+        if abs.starts_with("data:") {
+            if let Some(url) = self.load_data(&abs)? {
+                return Ok(Some(url));
+            } else {
+                return Ok(None);
+            }
+        }
         let mut uri = match Url::try_from(abs.as_str()) {
             Ok(u) => u,
             Err(e) => {
@@ -592,6 +603,38 @@ impl GemView {
                     return Err(String::from("unknown-response-code").into());
                 }
             }
+        }
+    }
+
+    fn load_data(&self, url: &str) -> Result<Option<String>, Box<dyn Error>> {
+        let data = DataUrl::try_from(url)?;
+        match data.mime() {
+            MimeType::TextPlain => {
+                if let Data::Text(payload) = data.decode()? {
+                    self.render_text(&payload);
+                    return Ok(Some(url.to_string()));
+                } else {
+                    unreachable!();
+                }
+            },
+            MimeType::TextGemini => {
+                if let Data::Text(payload) = data.decode()? {
+                    self.render_gmi(&payload);
+                    return Ok(Some(url.to_string()));
+                } else {
+                    unreachable!();
+                }
+
+            },
+            MimeType::ImagePng | MimeType::ImageJpeg | MimeType::ImageSvg => {
+                if let Data::Bytes(payload) = data.decode()? {
+                    self.render_image_from_bytes(&payload);
+                    return Ok(Some(url.to_string()));
+                } else {
+                    unreachable!();
+                }
+            },
+            _ => Err(String::from("Unrecognized data type").into()),
         }
     }
 
