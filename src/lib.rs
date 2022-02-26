@@ -61,6 +61,7 @@ use std::error::Error;
 
 mod scheme;
 use scheme::data::{Data, DataUrl, MimeType};
+use scheme::gopher;
 mod imp;
 
 glib::wrapper! {
@@ -494,6 +495,24 @@ impl GemView {
                     let mut iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }
+            }
+        }
+    }
+
+    fn render_gopher(&self, content: &gopher::Content) {
+        self.clear();
+        let buf = self.buffer();
+        let mut iter;
+        for line in content.parse() {
+            iter = buf.end_iter();
+            match line {
+                gopher::parser::LineType::Text(text) => {
+                    buf.insert(&mut iter, &text);
+                    buf.insert(&mut iter, "\n");
+                },
+                gopher::parser::LineType::Link(link) => {
+                    buf.insert(&mut iter, &link.to_markup(&self.font_pre()));
+                },
             }
         }
     }
