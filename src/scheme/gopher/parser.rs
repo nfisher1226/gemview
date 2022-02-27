@@ -1,5 +1,4 @@
 use gtk::pango::FontDescription;
-use super::Content;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LineType {
@@ -60,7 +59,7 @@ impl Link {
             font.to_str(),
             &self.host,
             &self.port,
-            &self.path,
+            &urlencoding::encode(&self.path),
             &self.display,
         )
     }

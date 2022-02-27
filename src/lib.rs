@@ -11,7 +11,7 @@
 //! - [x] Display plain text over gemini
 //! - [x] Display images over gemini
 //! - [x] Display text and images from `data://` url's
-//! - [ ] Browse and render gopher and plain text over gopher
+//! - [x] Browse and render gopher maps, plain text and images over gopher
 //! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [x] User customizable colors (via CSS)
@@ -188,7 +188,7 @@ impl GemView {
         *self.imp().font_pre.borrow_mut() = font;
     }
 
-    /// Returns the font used to render "blockquote" elements
+    /// Returns the font used to render "blockte" elements
     pub fn font_quote(&self) -> FontDescription {
         self.imp().font_quote.borrow().clone()
     }
@@ -306,7 +306,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">{}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_paragraph().size()),
                         ),
                     );
                 }
@@ -323,7 +323,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">{}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_h1().size()),
                         ),
                     );
                 }
@@ -340,7 +340,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">{}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_h2().size()),
                         ),
                     );
                 }
@@ -357,7 +357,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">{}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_h3().size()),
                         ),
                     );
                 }
@@ -374,7 +374,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">  • {}</span>\n",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_paragraph().size()),
                         ),
                     );
                 }
@@ -400,8 +400,8 @@ impl GemView {
                             font.to_str(),
                             &link,
                             match text {
-                                Some(t) => self.wrap_text(&t),
-                                None => self.wrap_text(&link),
+                                Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
+                                None => self.wrap_text(&link, self.font_paragraph().size()),
                             },
                         ))
                         .build();
@@ -450,7 +450,7 @@ impl GemView {
                         .label(&format!(
                             "<span font=\"{}\">{}</span>",
                             font.to_str(),
-                            self.wrap_text(&text),
+                            self.wrap_text(&text, self.font_paragraph().size()),
                         ))
                         .build();
                     quotebox.append(&label);
@@ -507,11 +507,40 @@ impl GemView {
             iter = buf.end_iter();
             match line {
                 gopher::parser::LineType::Text(text) => {
-                    buf.insert(&mut iter, &text);
-                    buf.insert(&mut iter, "\n");
+                    buf.insert_markup(
+                        &mut iter,
+                        &format!(
+                            "<span font=\"{}\">{}</span>\n",
+                            &self.font_pre(),
+                            &text
+                        ),
+                    );
                 },
                 gopher::parser::LineType::Link(link) => {
-                    buf.insert(&mut iter, &link.to_markup(&self.font_pre()));
+                    let anchor = buf.create_child_anchor(&mut iter);
+                    let label = gtk::builders::LabelBuilder::new()
+                        .use_markup(true)
+                        .tooltip_text(&format!(
+                            "gopher://{}:{}{}",
+                            &link.host,
+                            &link.port,
+                            &link.path,
+                        ))
+                        .label(&link.to_markup(&self.font_pre()))
+                        .build();
+                    label.set_cursor_from_name(Some("pointer"));
+                    self.add_child_at_anchor(&label, &anchor);
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
+                    let viewer = self.clone();
+                    label.connect_activate_link(move |_, link| {
+                        if let Err(e) = viewer.visit(link) {
+                            eprintln!("Error: {}", e);
+                            let estr = format!("{:?}", e);
+                            viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
+                        };
+                        gtk::Inhibit(true)
+                    });
                 },
             }
         }
@@ -525,9 +554,10 @@ impl GemView {
     }
 
     fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
-        match url::Url::parse(url) {
+        let url = urlencoding::decode(url)?;
+        match url::Url::parse(&url) {
             Ok(u) => match u.scheme() {
-                "gemini" | "mercury" | "data" => Ok(url.to_string()),
+                "gemini" | "mercury" | "data" | "gopher"  => Ok(url.to_string()),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
                     Err(format!("unsupported-scheme: {}", s).into())
@@ -536,7 +566,7 @@ impl GemView {
             Err(e) => match e {
                 url::ParseError::RelativeUrlWithoutBase => {
                     let origin = url::Url::parse(&self.uri())?;
-                    let new = origin.join(url)?;
+                    let new = origin.join(&url)?;
                     Ok(new.to_string())
                 }
                 _ => Err(e.into()),
@@ -569,6 +599,22 @@ impl GemView {
         if abs.starts_with("data:") {
             if let Some(url) = self.load_data(&abs)? {
                 return Ok(Some(url));
+            } else {
+                return Ok(None);
+            }
+        } else if abs.starts_with("gopher:") {
+            let url = url::Url::parse(&abs)?;
+            let content = gopher::request(&url)?;
+            if content.mime.starts_with("text") {
+                if content.is_map() {
+                    self.render_gopher(&content);
+                    return Ok(Some(abs));
+                } else {
+                    self.render_text(&String::from_utf8_lossy(&content.bytes));
+                    return Ok(Some(abs));
+                }
+            } else if content.mime.starts_with("image") {
+                self.render_image_from_bytes(&content.bytes);
             } else {
                 return Ok(None);
             }
@@ -737,9 +783,10 @@ impl GemView {
         })
     }
 
-    fn wrap_text(&self, text: &str) -> String {
+    fn wrap_text(&self, text: &str, font_size: i32) -> String {
+        let factor = font_size / 1500;
         let width: usize = match self.root() {
-            Some(win) => std::cmp::min((win.width() / 10).try_into().unwrap(), 175),
+            Some(win) => std::cmp::min((win.width() / factor).try_into().unwrap(), 175),
             None => 175,
         };
         fill(glib::markup_escape_text(text).as_str(), width)

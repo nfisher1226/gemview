@@ -13,7 +13,7 @@ license = "MIT"
 
 [dependencies]
 base64 = "~0.13"
-gmi = { path = "../gmi" }
+gmi = { git = "https://gitlab.com/jeang3nie/gmi.git" }
 once_cell = "1"
 textwrap = "~0.14"
 tree_magic_mini = "~3.0"

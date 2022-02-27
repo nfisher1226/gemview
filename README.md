@@ -12,7 +12,7 @@ for gtk+ (version 4) implemented in Rust.
 - [x] Display plain text over gemini
 - [x] Display images over gemini
 - [x] Display text and images from `data://` url's
-- [ ] Browse and render gopher and plain text over gopher
+- [x] Browse and render gopher maps, plain text and images over gopher
 - [x] Open http(s) links in a *normal* browser
 - [x] User customizable fonts
 - [x] User customizable colors (via CSS)
