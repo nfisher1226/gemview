@@ -1,3 +1,4 @@
+use gtk::glib;
 use gtk::pango::FontDescription;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -54,13 +55,17 @@ impl LineType {
 
 impl Link {
     pub fn to_markup(&self, font: &FontDescription) -> String {
-        format!(
-            "<span font=\"{}\"><a href=\"gopher://{}:{}{}\">{}</a></span>\n",
-            font.to_str(),
+        let link = format!(
+            "gopher://{}:{}{}",
             &self.host,
             &self.port,
-            &urlencoding::encode(&self.path),
-            &self.display,
+            &self.path
+        ).replace(" ", "%20");
+        format!(
+            "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
+            font.to_str(),
+            &link,
+            glib::markup_escape_text(&self.display)
         )
     }
 }

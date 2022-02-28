@@ -481,7 +481,7 @@ impl GemView {
                         .label(&format!(
                             "<span font=\"{}\">{}</span>",
                             font.to_str(),
-                            &text,
+                            glib::markup_escape_text(&text)
                         ))
                         .build();
                     prebox.append(&label);
@@ -512,7 +512,7 @@ impl GemView {
                         &format!(
                             "<span font=\"{}\">{}</span>\n",
                             &self.font_pre(),
-                            &text
+                            glib::markup_escape_text(&text)
                         ),
                     );
                 },
@@ -554,8 +554,7 @@ impl GemView {
     }
 
     fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let url = urlencoding::decode(url)?;
-        match url::Url::parse(&url) {
+        match url::Url::parse(url) {
             Ok(u) => match u.scheme() {
                 "gemini" | "mercury" | "data" | "gopher"  => Ok(url.to_string()),
                 s => {
