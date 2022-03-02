@@ -56,7 +56,8 @@ impl ObjectImpl for GemView {
         *self.font_h2.borrow_mut() = font.clone();
         font.set_weight(Weight::Heavy);
         font.set_size(18);
-        *self.font_h1.borrow_mut() = font
+        *self.font_h1.borrow_mut() = font;
+        obj.add_actions();
     }
 
     fn signals() -> &'static [Signal] {

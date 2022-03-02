@@ -50,7 +50,7 @@ use gmi::gemtext::GemtextNode;
 use gmi::url::Url;
 use gmi::{gemtext, protocol, request};
 use gtk::gdk_pixbuf::Pixbuf;
-use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem};
+use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup};
 use gtk::glib;
 use gtk::pango::FontDescription;
 use gtk::prelude::*;
@@ -89,6 +89,37 @@ impl Default for GemView {
 }
 
 impl GemView {
+    fn add_actions(&self) {
+        let request_new_tab = SimpleAction::new(
+            "request-new-tab",
+            Some(glib::VariantTy::STRING),
+        );
+        let request_new_window = SimpleAction::new(
+            "request-new-window",
+            Some(glib::VariantTy::STRING),
+        );
+        let group = SimpleActionGroup::new();
+        group.add_action(&request_new_tab);
+        group.add_action(&request_new_window);
+        let viewer = self.clone();
+        request_new_tab.connect_activate(move |_,url| {
+            if let Some(url) = url {
+                if let Some(url) = url.get::<String>() {
+                    viewer.emit_by_name::<()>("request-new-tab", &[&url]);
+                }
+            }
+        });
+        let viewer = self.clone();
+        request_new_window.connect_activate(move |_,url| {
+            if let Some(url) = url {
+                if let Some(url) = url.get::<String>() {
+                    viewer.emit_by_name::<()>("request-new-window", &[&url]);
+                }
+            }
+        });
+        self.insert_action_group("viewer", Some(&group));
+    }
+
     /// Returns the current uri
     pub fn uri(&self) -> String {
         self.imp().history.borrow().uri.clone()
@@ -407,8 +438,10 @@ impl GemView {
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
-                    let in_tab = MenuItem::new(Some("Open link in new tab"), None);
-                    let in_window = MenuItem::new(Some("Open link in new window"), None);
+                    let action_name = format!("viewer.request-new-tab('{}')", &link);
+                    let in_tab = MenuItem::new(Some("Open link in new tab"), Some(&action_name));
+                    let action_name = format!("viewer.request-new-window('{}')", &link);
+                    let in_window = MenuItem::new(Some("Open link in new window"), Some(&action_name));
                     open_menu.append_item(&in_tab);
                     open_menu.append_item(&in_window);
                     label.set_extra_menu(Some(&open_menu));
@@ -775,6 +808,34 @@ impl GemView {
         f: F,
     ) -> glib::SignalHandlerId {
         self.connect_local("request-unsupported-scheme", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = values[1].get::<String>().unwrap();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    /// Connects to the "request-new-tab" signal, emitted when the "Open in new
+    /// tab" item is chosen from the context menu for link items.
+    pub fn connect_request_new_tab<F:Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-new-tab", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = values[1].get::<String>().unwrap();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    /// Connects to the "request-new-window" signal, emitted when the "Open in
+    /// new window" item is chosen from the context menu for link items.
+    pub fn connect_request_new_window<F:Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-new-window", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
             let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
