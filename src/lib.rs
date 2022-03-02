@@ -319,102 +319,80 @@ impl GemView {
         self.clear();
         let buf = self.buffer();
         let mut iter;
-        let mut preflag = false;
-        let mut prebox = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let nodes = gemtext::parse_gemtext(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">{}</span>\n",
+                            "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text, self.font_paragraph().size()),
                         ),
                     );
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::Heading(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_h1();
                     iter = buf.end_iter();
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">{}</span>\n",
+                            "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text, self.font_h1().size()),
                         ),
                     );
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::SubHeading(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_h2();
                     iter = buf.end_iter();
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">{}</span>\n",
+                            "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text, self.font_h2().size()),
                         ),
                     );
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::SubSubHeading(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_h3();
                     iter = buf.end_iter();
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">{}</span>\n",
+                            "<span font=\"{}\">{}</span>",
                             font.to_str(),
                             self.wrap_text(&text, self.font_h3().size()),
                         ),
                     );
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::ListItem(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
                     buf.insert_markup(
                         &mut iter,
                         &format!(
-                            "<span font=\"{}\">  • {}</span>\n",
+                            "<span font=\"{}\">  • {}</span>",
                             font.to_str(),
                             self.wrap_text(&text, self.font_paragraph().size()),
                         ),
                     );
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::Link(link, text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
                     let link = link.replace('&', "&amp;");
@@ -427,7 +405,7 @@ impl GemView {
                             format!("{}...", &link[..80])
                         })
                         .label(&format!(
-                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
+                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
                             font.to_str(),
                             &link,
                             match text {
@@ -459,11 +437,6 @@ impl GemView {
                     });
                 }
                 GemtextNode::Blockquote(text) => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let font = self.font_quote();
                     iter = buf.end_iter();
                     let anchor = buf.create_child_anchor(&mut iter);
@@ -491,23 +464,23 @@ impl GemView {
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }
-                GemtextNode::Preformatted(text, _) => {
-                    if !preflag {
-                        prebox = gtk::builders::BoxBuilder::new()
-                            .orientation(gtk::Orientation::Vertical)
-                            .hexpand(true)
-                            .halign(gtk::Align::Fill)
-                            .margin_bottom(8)
-                            .margin_top(8)
-                            .margin_start(8)
-                            .margin_end(8)
-                            .css_classes(vec!["preformatted".to_string()])
-                            .build();
-                        iter = buf.end_iter();
-                        let anchor = buf.create_child_anchor(&mut iter);
-                        self.add_child_at_anchor(&prebox, &anchor);
-                    }
+                GemtextNode::Preformatted(mut text, _) => {
+                    let prebox = gtk::builders::BoxBuilder::new()
+                        .orientation(gtk::Orientation::Vertical)
+                        .hexpand(true)
+                        .halign(gtk::Align::Fill)
+                        .margin_bottom(8)
+                        .margin_top(8)
+                        .margin_start(8)
+                        .margin_end(8)
+                        .css_classes(vec!["preformatted".to_string()])
+                        .build();
+                    iter = buf.end_iter();
+                    let anchor = buf.create_child_anchor(&mut iter);
+                    self.add_child_at_anchor(&prebox, &anchor);
                     let font = self.font_pre();
+                    // strip trailing newline
+                    text.truncate(text.len() - 1);
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
                         .css_classes(vec!["preformatted".to_string()])
@@ -518,13 +491,10 @@ impl GemView {
                         ))
                         .build();
                     prebox.append(&label);
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::EmptyLine => {
-                    if preflag {
-                        iter = buf.end_iter();
-                        buf.insert(&mut iter, "\n");
-                        preflag = false;
-                    }
                     let mut iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }

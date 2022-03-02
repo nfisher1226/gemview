@@ -71,6 +71,18 @@ impl Content {
     }
 }
 
+fn trim_path(path: String) -> String {
+    if path.starts_with("/0/") ||
+        path.starts_with("/1/") ||
+        path.starts_with("/g/") ||
+        path.starts_with("/I/") ||
+        path.starts_with("/9/") {
+        path[2..].to_string()
+    } else {
+        path
+    }
+}
+
 pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(70)),
@@ -90,7 +102,8 @@ pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     ) {
         Err(e) => return Err(e.into()),
         Ok(mut stream) => {
-            let mut path = url.path().to_string();
+            let path = url.path().to_string();
+            let mut path = trim_path(path);
             if let Some(q) = url.query() {
                 path.push_str("?");
                 path.push_str(q);
