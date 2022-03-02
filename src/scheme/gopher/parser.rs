@@ -62,7 +62,7 @@ impl Link {
             &self.path
         ).replace(" ", "%20");
         format!(
-            "<span font=\"{}\"><a href=\"{}\">{}</a></span>\n",
+            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
             font.to_str(),
             &link,
             glib::markup_escape_text(&self.display)
