@@ -105,7 +105,9 @@ impl GemView {
         request_new_tab.connect_activate(move |_,url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    viewer.emit_by_name::<()>("request-new-tab", &[&url]);
+                    if let Ok(url) = viewer.absolute_url(&url) {
+                        viewer.emit_by_name::<()>("request-new-tab", &[&url]);
+                    }
                 }
             }
         });
@@ -113,7 +115,9 @@ impl GemView {
         request_new_window.connect_activate(move |_,url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    viewer.emit_by_name::<()>("request-new-window", &[&url]);
+                    if let Ok(url) = viewer.absolute_url(&url) {
+                        viewer.emit_by_name::<()>("request-new-window", &[&url]);
+                    }
                 }
             }
         });
