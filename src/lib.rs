@@ -421,9 +421,9 @@ impl GemView {
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
                     let action_name = format!("viewer.request-new-tab('{}')", &link);
-                    let in_tab = MenuItem::new(Some("Open link in new tab"), Some(&action_name));
+                    let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
                     let action_name = format!("viewer.request-new-window('{}')", &link);
-                    let in_window = MenuItem::new(Some("Open link in new window"), Some(&action_name));
+                    let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
                     open_menu.append_item(&in_tab);
                     open_menu.append_item(&in_window);
                     label.set_extra_menu(Some(&open_menu));
@@ -536,6 +536,24 @@ impl GemView {
                         .label(&link.to_markup(&self.font_pre()))
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
+                    let open_menu = Menu::new();
+                    let action_name = format!(
+                        "viewer.request-new-tab('gopher://{}:{}{}')",
+                        &link.host,
+                        &link.port,
+                        &link.path,
+                    );
+                    let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
+                    let action_name = format!(
+                        "viewer.request-new-window('gopher://{}:{}{}')",
+                        &link.host,
+                        &link.port,
+                        &link.path,
+                    );
+                    let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
+                    open_menu.append_item(&in_tab);
+                    open_menu.append_item(&in_window);
+                    label.set_extra_menu(Some(&open_menu));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
