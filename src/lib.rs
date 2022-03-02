@@ -12,6 +12,7 @@
 //! - [x] Display images over gemini
 //! - [x] Display text and images from `data://` url's
 //! - [x] Browse and render gopher maps, plain text and images over gopher
+//! - [x] Display finger protocol content
 //! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [x] User customizable colors (via CSS)
@@ -21,7 +22,7 @@
 //! ## Usage
 //! ```Yaml
 //! [dependencies]
-//! gemview = 0.1.0
+//! gemview = 0.2.0
 //!
 //! [dependencies.gtk]
 //! version = "~0.4"
@@ -61,7 +62,8 @@ use std::error::Error;
 
 mod scheme;
 use scheme::data::{Data, DataUrl, MimeType};
-use scheme::gopher;
+use scheme::{finger,gopher};
+use scheme::gopher::GopherMap;
 mod imp;
 
 glib::wrapper! {
@@ -506,7 +508,7 @@ impl GemView {
         }
     }
 
-    fn render_gopher(&self, content: &gopher::Content) {
+    fn render_gopher(&self, content: &scheme::Content) {
         self.clear();
         let buf = self.buffer();
         let mut iter;
@@ -581,7 +583,7 @@ impl GemView {
     fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
         match url::Url::parse(url) {
             Ok(u) => match u.scheme() {
-                "gemini" | "mercury" | "data" | "gopher"  => Ok(url.to_string()),
+                "gemini" | "mercury" | "data" | "gopher" | "finger"  => Ok(url.to_string()),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
                     Err(format!("unsupported-scheme: {}", s).into())
@@ -642,6 +644,11 @@ impl GemView {
             } else {
                 return Ok(None);
             }
+        } else if abs.starts_with("finger:") {
+            let url = url::Url::parse(&abs)?;
+            let content = finger::request(&url)?;
+            self.render_text(&String::from_utf8_lossy(&content.bytes));
+            return Ok(Some(abs));
         }
         let mut uri = match Url::try_from(abs.as_str()) {
             Ok(u) => u,

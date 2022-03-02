@@ -8,21 +8,16 @@ use std::time::Duration;
 
 pub mod parser;
 use parser::LineType;
+use super::Content;
 
-pub struct Content {
-    pub mime: &'static str,
-    pub bytes: Vec<u8>,
+pub trait GopherMap {
+    fn is_map(&self) -> bool;
+
+    fn parse(&self) -> Vec<LineType>;
 }
 
-impl Content {
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
-        Self {
-            mime: tree_magic_mini::from_u8(&bytes),
-            bytes,
-        }
-    }
-
-    pub fn is_map(&self) -> bool {
+impl GopherMap for Content {
+    fn is_map(&self) -> bool {
         if self.mime.starts_with("text") {
             let page = String::from_utf8_lossy(&self.bytes);
             for line in page.lines() {
@@ -60,7 +55,7 @@ impl Content {
         }
     }
 
-    pub fn parse(&self) -> Vec<LineType> {
+    fn parse(&self) -> Vec<LineType> {
         let mut ret = vec![];
         for line in String::from_utf8_lossy(&self.bytes).lines() {
             if let Some(line) = LineType::parse_line(line) {

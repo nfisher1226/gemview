@@ -13,6 +13,7 @@ for gtk+ (version 4) implemented in Rust.
 - [x] Display images over gemini
 - [x] Display text and images from `data://` url's
 - [x] Browse and render gopher maps, plain text and images over gopher
+- [x] Display finger protocol content
 - [x] Open http(s) links in a *normal* browser
 - [x] User customizable fonts
 - [x] User customizable colors (via CSS)
@@ -22,7 +23,7 @@ for gtk+ (version 4) implemented in Rust.
 ## Usage
 ```Yaml
 [dependencies]
-gemview = 0.1.0
+gemview = 0.2.0
 
 [dependencies.gtk]
 version = "~0.4"
