@@ -47,9 +47,6 @@
 //! ```
 
 use glib::Object;
-use gmi::gemtext::GemtextNode;
-use gmi::url::Url;
-use gmi::{gemtext, protocol, request};
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup};
 use gtk::glib;
@@ -57,12 +54,14 @@ use gtk::pango::FontDescription;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use textwrap::fill;
+use url::Url;
 
 use std::error::Error;
 
 mod scheme;
 use scheme::data::{Data, DataUrl, MimeType};
-use scheme::{finger,gopher};
+use scheme::{finger,gemini,gopher};
+use gemini::parser::GemtextNode;
 use scheme::gopher::GopherMap;
 mod imp;
 
@@ -307,7 +306,7 @@ impl GemView {
     }
 
     /// Renders a [`gtk::gdk_pixbuf::Pixbuf`]
-    pub fn render_pixbuf(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
+    fn render_pixbuf(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
         self.clear();
         let buf = self.buffer();
         let mut iter = buf.end_iter();
@@ -325,7 +324,7 @@ impl GemView {
         self.clear();
         let buf = self.buffer();
         let mut iter;
-        let nodes = gemtext::parse_gemtext(data);
+        let nodes = gemini::parser::parse_gemtext(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
@@ -659,7 +658,7 @@ impl GemView {
             }
         };
         loop {
-            let response = match request::make_request(&uri) {
+            let response = match gemini::request::make_request(&uri) {
                 Ok(r) => r,
                 Err(e) => {
                     let estr = format!("{:?}", e);
@@ -668,7 +667,7 @@ impl GemView {
                 }
             };
             match response.status {
-                protocol::StatusCode::Redirect(c) => {
+                gemini::protocol::StatusCode::Redirect(c) => {
                     println!("Redirect code {} with meta {}", c, response.meta);
                     uri = match Url::try_from(response.meta.as_str()) {
                         Ok(r) => r,
@@ -679,7 +678,7 @@ impl GemView {
                         }
                     };
                 }
-                protocol::StatusCode::Success(_) => {
+                gemini::protocol::StatusCode::Success(_) => {
                     self.set_buffer_mime(&response.meta);
                     self.set_buffer_content(&response.data);
                     if response.meta.starts_with("text/gemini") {

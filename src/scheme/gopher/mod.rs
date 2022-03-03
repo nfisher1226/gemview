@@ -1,6 +1,6 @@
 use urlencoding::decode;
 use url::Url;
-use gmi::request::RequestError;
+use super::gemini::request::RequestError;
 use std::error::Error;
 use std::io::{ Read, Write };
 use std::net::ToSocketAddrs;

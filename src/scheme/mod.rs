@@ -1,5 +1,6 @@
 pub mod data;
 pub mod finger;
+pub mod gemini;
 pub mod gopher;
 
 pub struct Content {

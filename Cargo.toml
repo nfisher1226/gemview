@@ -7,14 +7,13 @@ authors = ["Nathan Fisher"]
 repository = "https://codeberg.org/jeang3nie/gemview"
 keywords = ["gemini", "networking", "gtk", "browser"]
 categories = ["gui", "network-programming"]
-license = "MIT"
+license = "LGPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 base64 = "~0.13"
-gmi = { git = "https://gitlab.com/jeang3nie/gmi.git" }
-once_cell = "1"
+once_cell = "~1"
 textwrap = "~0.14"
 tree_magic_mini = "~3.0"
 url = "~2.2"
@@ -23,3 +22,7 @@ urlencoding = "~2.1"
 [dependencies.gtk]
 version = "~0.4"
 package = "gtk4"
+
+[dependencies.rustls]
+version = "~0.20"
+features = ["dangerous_configuration"]

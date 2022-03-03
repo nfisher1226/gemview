@@ -7,6 +7,7 @@ pub enum MimeType {
     ImageJpeg,
     ImagePng,
     ImageSvg,
+    ImageOther,
     Unknown,
 }
 
@@ -49,6 +50,7 @@ impl TryFrom<&str> for DataUrl {
             "image/jpeg" => MimeType::ImageJpeg,
             "image/png" => MimeType::ImagePng,
             "image/svg" => MimeType::ImageSvg,
+            s if s.starts_with("image") => MimeType::ImageOther,
             _ => MimeType::Unknown,
         };
         Ok(Self {
@@ -75,7 +77,7 @@ impl DataUrl {
                 };
                 Ok(Data::Text(pl))
             }
-            MimeType::ImageJpeg | MimeType::ImagePng | MimeType::ImageSvg => {
+            MimeType::ImageJpeg | MimeType::ImagePng | MimeType::ImageSvg | MimeType::ImageOther => {
                 let pl = if self.base64 {
                     base64::decode(&self.data)?
                 } else {

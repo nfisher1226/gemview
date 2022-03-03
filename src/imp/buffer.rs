@@ -1,4 +1,4 @@
-use gmi::protocol::Response;
+use crate::scheme::gemini::protocol::Response;
 use std::error::Error;
 
 #[derive(Clone, Debug, Default)]
@@ -8,7 +8,7 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn from_gmi_response(response: Response) -> Result<Self, Box<dyn Error>> {
+    pub fn from_response(response: Response) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             mime: response.meta.clone(),
             content: response.data,
