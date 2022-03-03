@@ -50,6 +50,7 @@ use glib::Object;
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup};
 use gtk::glib;
+use glib::{clone, Continue, MainContext, PRIORITY_DEFAULT};
 use gtk::pango::FontDescription;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -57,6 +58,7 @@ use textwrap::fill;
 use url::Url;
 
 use std::error::Error;
+use std::thread;
 
 mod scheme;
 use scheme::data::{Data, DataUrl, MimeType};
@@ -107,7 +109,7 @@ impl GemView {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
                     if let Ok(url) = viewer.absolute_url(&url) {
-                        viewer.emit_by_name::<()>("request-new-tab", &[&url]);
+                        viewer.emit_by_name::<()>("request-new-tab", &[&url.to_string()]);
                     }
                 }
             }
@@ -117,7 +119,7 @@ impl GemView {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
                     if let Ok(url) = viewer.absolute_url(&url) {
-                        viewer.emit_by_name::<()>("request-new-window", &[&url]);
+                        viewer.emit_by_name::<()>("request-new-window", &[&url.to_string()]);
                     }
                 }
             }
@@ -149,13 +151,9 @@ impl GemView {
     ///
     /// ## Errors
     /// Propagates any page load errors
-    pub fn go_previous(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn go_previous(&self) {
         if let Some(uri) = self.previous() {
-            _ = self.load(&uri)?;
-            self.emit_by_name::<()>("page-loaded", &[&uri]);
-            Ok(())
-        } else {
-            Ok(())
+            self.load(&uri);
         }
     }
 
@@ -174,13 +172,9 @@ impl GemView {
     ///
     /// ## Errors
     /// Propagates any page load errors
-    pub fn go_next(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn go_next(&self) {
         if let Some(uri) = self.next() {
-            _ = self.load(&uri)?;
-            self.emit_by_name::<()>("page-loaded", &[&uri]);
-            Ok(())
-        } else {
-            Ok(())
+            self.load(&uri);
         }
     }
 
@@ -433,11 +427,7 @@ impl GemView {
                     buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
-                        if let Err(e) = viewer.visit(link) {
-                            eprintln!("Error: {}", e);
-                            let estr = format!("{:?}", e);
-                            viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
-                        };
+                        viewer.visit(link);
                         gtk::Inhibit(true)
                     });
                 }
@@ -560,11 +550,7 @@ impl GemView {
                     buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
-                        if let Err(e) = viewer.visit(link) {
-                            eprintln!("Error: {}", e);
-                            let estr = format!("{:?}", e);
-                            viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
-                        };
+                        viewer.visit(link);
                         gtk::Inhibit(true)
                     });
                 },
@@ -579,10 +565,10 @@ impl GemView {
         buf.delete(&mut start, &mut end);
     }
 
-    fn absolute_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
-        match url::Url::parse(url) {
+    fn absolute_url(&self, url: &str) -> Result<Url, Box<dyn std::error::Error>> {
+        match Url::parse(url) {
             Ok(u) => match u.scheme() {
-                "gemini" | "mercury" | "data" | "gopher" | "finger"  => Ok(url.to_string()),
+                "gemini" | "mercury" | "data" | "gopher" | "finger"  => Ok(u),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
                     Err(format!("unsupported-scheme: {}", s).into())
@@ -592,7 +578,7 @@ impl GemView {
                 url::ParseError::RelativeUrlWithoutBase => {
                     let origin = url::Url::parse(&self.uri())?;
                     let new = origin.join(&url)?;
-                    Ok(new.to_string())
+                    Ok(new)
                 }
                 _ => Err(e.into()),
             },
@@ -600,136 +586,180 @@ impl GemView {
     }
 
     /// Parse the given uri and then visits the page
-    pub fn visit(&self, addr: &str) -> Result<(), Box<dyn Error>> {
-        let uri = self.load(addr)?;
-        if let Some(uri) = uri {
-            self.append_history(&uri);
-            self.emit_by_name::<()>("page-loaded", &[&uri]);
-        }
-        Ok(())
+    pub fn visit(&self, addr: &str) {
+        self.load(addr);
     }
 
-    fn load(&self, addr: &str) -> Result<Option<String>, Box<dyn Error>> {
+    fn load(&self, addr: &str) {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
-        let abs = match self.absolute_url(addr) {
+        let url = match self.absolute_url(addr) {
             Ok(s) => s,
-            Err(e) => {
-                if format!("{:?}", e).contains("unsupported-scheme") {
-                    return Ok(None);
-                } else {
-                    return Err(e);
-                }
-            }
+            Err(e) => return,
         };
-        if abs.starts_with("data:") {
-            if let Some(url) = self.load_data(&abs)? {
-                return Ok(Some(url));
-            } else {
-                return Ok(None);
-            }
-        } else if abs.starts_with("gopher:") {
-            let url = url::Url::parse(&abs)?;
-            let content = gopher::request(&url)?;
-            if content.mime.starts_with("text") {
-                if content.is_map() {
-                    self.render_gopher(&content);
-                    return Ok(Some(abs));
-                } else {
-                    self.render_text(&String::from_utf8_lossy(&content.bytes));
-                    return Ok(Some(abs));
+        match url.scheme() {
+            "data" => self.load_data(&url),
+            "gopher" => {
+                /*let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+                let req = url.clone();
+                let sender = sender.clone();
+                thread::spawn(move || {
+                    match gopher::request(&req) {
+                        Ok(content) => {
+                            sender.send(Some(content)).expect("Cannot send data");
+                        },
+                        Err(_) => {
+                            sender.send(None).expect("Cannot send data");
+                        }
+                    }
+                });
+                let viewer = self.clone();
+                receiver.attach(
+                    None,
+                    move |content| {
+                        if let Some(c) = content {
+                            println!("{:?}", c.mime);
+                        }
+                        Continue(false)
+                    }
+                );*/
+
+                match gopher::request(&url) {
+                    Ok(content) => {
+                        if content.mime.starts_with("text") {
+                            if content.is_map() {
+                                self.render_gopher(&content);
+                            } else {
+                                self.render_text(&String::from_utf8_lossy(&content.bytes));
+                            }
+                            let url = url.to_string();
+                            self.append_history(&url);
+                            self.emit_by_name::<()>("page-loaded", &[&url]);
+                        } else if content.mime.starts_with("image") {
+                            self.render_image_from_bytes(&content.bytes);
+                            let url = url.to_string();
+                            self.append_history(&url);
+                            self.emit_by_name::<()>("page-loaded", &[&url]);
+                        } else {
+                            return;
+                        }
+                    }
+                    Err(e) => {
+                        let estr = format!("{:?}", e);
+                        self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                    }
                 }
-            } else if content.mime.starts_with("image") {
-                self.render_image_from_bytes(&content.bytes);
-            } else {
-                return Ok(None);
-            }
-        } else if abs.starts_with("finger:") {
-            let url = url::Url::parse(&abs)?;
-            let content = finger::request(&url)?;
-            self.render_text(&String::from_utf8_lossy(&content.bytes));
-            return Ok(Some(abs));
-        }
-        let mut uri = match Url::try_from(abs.as_str()) {
-            Ok(u) => u,
-            Err(e) => {
-                let estr = format!("{:?}", e);
-                self.emit_by_name::<()>("page-load-failed", &[&estr]);
-                return Err(e.into());
-            }
-        };
-        loop {
-            let response = match gemini::request::make_request(&uri) {
-                Ok(r) => r,
-                Err(e) => {
-                    let estr = format!("{:?}", e);
-                    self.emit_by_name::<()>("page-load-failed", &[&estr]);
-                    return Err(e.into());
+            },
+            "finger" => {
+                match finger::request(&url) {
+                    Ok(content) => {
+                        self.render_text(&String::from_utf8_lossy(&content.bytes));
+                        let url = url.to_string();
+                        self.append_history(&url);
+                        self.emit_by_name::<()>("page-loaded", &[&url]);
+                    },
+                    Err(e) => {
+                        let estr = format!("{:?}", e);
+                        self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                    }
                 }
-            };
-            match response.status {
-                gemini::protocol::StatusCode::Redirect(c) => {
-                    println!("Redirect code {} with meta {}", c, response.meta);
-                    uri = match Url::try_from(response.meta.as_str()) {
+            },
+            "gemini" => {
+                let mut url = url;
+                loop {
+                    let response = match gemini::request::make_request(&url) {
                         Ok(r) => r,
                         Err(e) => {
                             let estr = format!("{:?}", e);
                             self.emit_by_name::<()>("page-load-failed", &[&estr]);
-                            return Err(e.into());
+                            break;
                         }
                     };
-                }
-                gemini::protocol::StatusCode::Success(_) => {
-                    self.set_buffer_mime(&response.meta);
-                    self.set_buffer_content(&response.data);
-                    if response.meta.starts_with("text/gemini") {
-                        self.render_gmi(&String::from_utf8_lossy(&response.data));
-                    } else if response.meta.starts_with("text/plain") {
-                        self.render_text(&String::from_utf8_lossy(&response.data));
-                    } else if response.meta.starts_with("image") {
-                        self.render_image_from_bytes(&response.data);
-                    } else {
-                        self.emit_by_name::<()>("request-download", &[&response.meta]);
+                    match response.status {
+                        gemini::protocol::StatusCode::Redirect(c) => {
+                            println!("Redirect code {} with meta {}", c, response.meta);
+                            url = match Url::try_from(response.meta.as_str()) {
+                                Ok(r) => r,
+                                Err(e) => {
+                                    let estr = format!("{:?}", e);
+                                    self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                                    break;
+                                }
+                            };
+                        }
+                        gemini::protocol::StatusCode::Success(_) => {
+                            self.set_buffer_mime(&response.meta);
+                            self.set_buffer_content(&response.data);
+                            if response.meta.starts_with("text/gemini") {
+                                self.render_gmi(&String::from_utf8_lossy(&response.data));
+                            } else if response.meta.starts_with("text/plain") {
+                                self.render_text(&String::from_utf8_lossy(&response.data));
+                            } else if response.meta.starts_with("image") {
+                                self.render_image_from_bytes(&response.data);
+                            } else {
+                                self.emit_by_name::<()>("request-download", &[&response.meta]);
+                            }
+                            let url = url.to_string();
+                            self.emit_by_name::<()>("page-loaded", &[&url]);
+                            self.append_history(&url);
+                            break;
+                        }
+                        s => {
+                            let estr = format!("{:?}", s);
+                            self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                            break;
+                        }
                     }
-                    let uri_str = uri.to_string();
-                    return Ok(Some(uri_str));
-                }
-                s => {
-                    let estr = format!("{:?}", s);
-                    self.emit_by_name::<()>("page-load-failed", &[&estr]);
-                    return Err(String::from("unknown-response-code").into());
                 }
             }
+            _ => {},
         }
     }
 
-    fn load_data(&self, url: &str) -> Result<Option<String>, Box<dyn Error>> {
-        let data = DataUrl::try_from(url)?;
+    fn load_data(&self, url: &Url) {
+        let data = match DataUrl::try_from(url.to_string().as_str()) {
+            Ok(d) => d,
+            Err(e) => {
+                let estr = format!("{:?}", e);
+                self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                return;
+            }
+        };
         match data.mime() {
             MimeType::TextPlain => {
-                if let Data::Text(payload) = data.decode()? {
-                    self.render_text(&payload);
-                    Ok(Some(url.to_string()))
-                } else {
-                    unreachable!();
+                match data.decode() {
+                    Ok(Data::Text(payload)) => {
+                        self.render_text(&payload);
+                        let url = url.to_string();
+                        self.append_history(&url);
+                        self.emit_by_name::<()>("page-loaded", &[&url]);
+                    },
+                    _ => unreachable!(),
                 }
             }
             MimeType::TextGemini => {
-                if let Data::Text(payload) = data.decode()? {
-                    self.render_gmi(&payload);
-                    Ok(Some(url.to_string()))
-                } else {
-                    unreachable!();
+                match data.decode() {
+                    Ok(Data::Text(payload)) => {
+                        self.render_gmi(&payload);
+                        let url = url.to_string();
+                        self.append_history(&url);
+                        self.emit_by_name::<()>("page-loaded", &[&url]);
+                    },
+                    _ => unreachable!(),
                 }
             }
-            MimeType::ImagePng | MimeType::ImageJpeg | MimeType::ImageSvg => {
-                if let Data::Bytes(payload) = data.decode()? {
-                    self.render_image_from_bytes(&payload);
-                    Ok(Some(url.to_string()))
-                } else {
-                    unreachable!();
+            MimeType::ImagePng | MimeType::ImageJpeg | MimeType::ImageSvg |
+            MimeType::ImageOther => {
+                match data.decode() {
+                    Ok(Data::Bytes(payload)) => {
+                        self.render_image_from_bytes(&payload);
+                        let url = url.to_string();
+                        self.append_history(&url);
+                        self.emit_by_name::<()>("page-loaded", &[&url]);
+                    },
+                    _ => unreachable!(),
                 }
             }
-            _ => Err(String::from("Unrecognized data type").into()),
+            _ => self.emit_by_name::<()>("page-load-failed", &[&"unrecognized data type".to_string()]),
         }
     }
 
@@ -737,10 +767,8 @@ impl GemView {
     ///
     /// ## Errors
     /// Propagates ay page load errors
-    pub fn reload(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let uri = self.load(&self.uri())?;
-        self.emit_by_name::<()>("page-loaded", &[&uri]);
-        Ok(())
+    pub fn reload(&self) {
+        self.load(&self.uri());
     }
 
     /// Connects to the "page-load-started" signal, emitted when the browser
