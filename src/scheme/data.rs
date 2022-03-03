@@ -1,5 +1,4 @@
 use std::error::Error;
-use url::Url;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MimeType {

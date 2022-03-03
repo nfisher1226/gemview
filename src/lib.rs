@@ -50,17 +50,17 @@ use glib::Object;
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup};
 use gtk::glib;
-use glib::{clone, Continue, MainContext, PRIORITY_DEFAULT};
+use glib::{Continue, MainContext, PRIORITY_DEFAULT};
 use gtk::pango::FontDescription;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use textwrap::fill;
 use url::Url;
 
-use std::error::Error;
 use std::thread;
 
 mod scheme;
+use scheme::Response;
 use scheme::data::{Data, DataUrl, MimeType};
 use scheme::{finger,gemini,gopher};
 use gemini::parser::GemtextNode;
@@ -594,74 +594,90 @@ impl GemView {
         self.emit_by_name::<()>("page-load-started", &[&addr]);
         let url = match self.absolute_url(addr) {
             Ok(s) => s,
-            Err(e) => return,
+            Err(e) => {
+                let estr = format!("{:?}", e);
+                self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                return;
+            },
         };
         match url.scheme() {
             "data" => self.load_data(&url),
             "gopher" => {
-                /*let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+                let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
                 let req = url.clone();
                 let sender = sender.clone();
                 thread::spawn(move || {
                     match gopher::request(&req) {
                         Ok(content) => {
-                            sender.send(Some(content)).expect("Cannot send data");
+                            sender.send(Response::Success(content)).expect("Cannot send data");
                         },
-                        Err(_) => {
-                            sender.send(None).expect("Cannot send data");
+                        Err(e) => {
+                            sender.send(Response::Error(format!("{:?}", e))).expect("Cannot send data");
                         }
                     }
                 });
                 let viewer = self.clone();
                 receiver.attach(
                     None,
-                    move |content| {
-                        if let Some(c) = content {
-                            println!("{:?}", c.mime);
+                    move |response| {
+                        match response {
+                            Response::Success(content) => {
+                                if content.mime.starts_with("text") {
+                                    if content.is_map() {
+                                        viewer.render_gopher(&content);
+                                    } else {
+                                        viewer.render_text(&String::from_utf8_lossy(&content.bytes));
+                                    }
+                                    let url = url.to_string();
+                                    viewer.append_history(&url);
+                                    viewer.emit_by_name::<()>("page-loaded", &[&url]);
+                                } else if content.mime.starts_with("image") {
+                                    viewer.render_image_from_bytes(&content.bytes);
+                                    let url = url.to_string();
+                                    viewer.append_history(&url);
+                                    viewer.emit_by_name::<()>("page-loaded", &[&url]);
+                                }
+                            },
+                            Response::Error(err) => {
+                                viewer.emit_by_name::<()>("page-load-failed", &[&err]);
+                            }
                         }
                         Continue(false)
                     }
-                );*/
-
-                match gopher::request(&url) {
-                    Ok(content) => {
-                        if content.mime.starts_with("text") {
-                            if content.is_map() {
-                                self.render_gopher(&content);
-                            } else {
-                                self.render_text(&String::from_utf8_lossy(&content.bytes));
-                            }
-                            let url = url.to_string();
-                            self.append_history(&url);
-                            self.emit_by_name::<()>("page-loaded", &[&url]);
-                        } else if content.mime.starts_with("image") {
-                            self.render_image_from_bytes(&content.bytes);
-                            let url = url.to_string();
-                            self.append_history(&url);
-                            self.emit_by_name::<()>("page-loaded", &[&url]);
-                        } else {
-                            return;
-                        }
-                    }
-                    Err(e) => {
-                        let estr = format!("{:?}", e);
-                        self.emit_by_name::<()>("page-load-failed", &[&estr]);
-                    }
-                }
+                );
             },
             "finger" => {
-                match finger::request(&url) {
-                    Ok(content) => {
-                        self.render_text(&String::from_utf8_lossy(&content.bytes));
-                        let url = url.to_string();
-                        self.append_history(&url);
-                        self.emit_by_name::<()>("page-loaded", &[&url]);
-                    },
-                    Err(e) => {
-                        let estr = format!("{:?}", e);
-                        self.emit_by_name::<()>("page-load-failed", &[&estr]);
+                let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+                let req = url.clone();
+                let sender = sender.clone();
+                thread::spawn(move || {
+                    match finger::request(&req) {
+                        Ok(content) => {
+                            sender.send(Response::Success(content)).expect("Cannot send data");
+                        },
+                        Err(e) => {
+                            sender.send(Response::Error(format!("{:?}", e))).expect("Cannot send data");
+                        }
                     }
-                }
+                });
+                let viewer = self.clone();
+                receiver.attach(
+                    None,
+                    move |response| {
+                        match response {
+                            Response::Success(content) => {
+                                viewer.render_text(&String::from_utf8_lossy(&content.bytes));
+                                let url = url.to_string();
+                                viewer.append_history(&url);
+                                viewer.emit_by_name::<()>("page-loaded", &[&url]);
+                            },
+                            Response::Error(err) => {
+                                viewer.emit_by_name::<()>("page-load-failed", &[&err]);
+                            }
+                        }
+                        Continue(false)
+                    }
+                );
             },
             "gemini" => {
                 let mut url = url;
