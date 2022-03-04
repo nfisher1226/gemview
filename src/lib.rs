@@ -109,7 +109,9 @@ impl GemView {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
                     if let Ok(url) = viewer.absolute_url(&url) {
-                        viewer.emit_by_name::<()>("request-new-tab", &[&url.to_string()]);
+                        if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                            viewer.emit_by_name::<()>("request-new-tab", &[&url.to_string()]);
+                        }
                     }
                 }
             }
@@ -119,7 +121,9 @@ impl GemView {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
                     if let Ok(url) = viewer.absolute_url(&url) {
-                        viewer.emit_by_name::<()>("request-new-window", &[&url.to_string()]);
+                        if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                            viewer.emit_by_name::<()>("request-new-window", &[&url.to_string()]);
+                        }
                     }
                 }
             }
@@ -418,9 +422,10 @@ impl GemView {
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
-                    let action_name = format!("viewer.request-new-tab('{}')", &link);
+                    let encoded = urlencoding::encode(&link);
+                    let action_name = format!("viewer.request-new-tab('{}')", &encoded);
                     let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
-                    let action_name = format!("viewer.request-new-window('{}')", &link);
+                    let action_name = format!("viewer.request-new-window('{}')", &encoded);
                     let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
                     open_menu.append_item(&in_tab);
                     open_menu.append_item(&in_window);
@@ -531,18 +536,21 @@ impl GemView {
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
-                    let action_name = format!(
-                        "viewer.request-new-tab('gopher://{}:{}{}')",
+                    let ln = format!(
+                        "gopher://{}:{}{}",
                         &link.host,
                         &link.port,
                         &link.path,
                     );
+                    let ln = urlencoding::encode(&ln);
+                    let action_name = format!(
+                        "viewer.request-new-tab('{}')",
+                        &ln,
+                    );
                     let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
                     let action_name = format!(
-                        "viewer.request-new-window('gopher://{}:{}{}')",
-                        &link.host,
-                        &link.port,
-                        &link.path,
+                        "viewer.request-new-window('{}')",
+                        &ln,
                     );
                     let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
                     open_menu.append_item(&in_tab);
