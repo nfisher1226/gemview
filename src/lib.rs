@@ -108,8 +108,8 @@ impl GemView {
         request_new_tab.connect_activate(move |_,url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    if let Ok(url) = viewer.absolute_url(&url) {
-                        if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                    if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                        if let Ok(url) = viewer.absolute_url(&url) {
                             viewer.emit_by_name::<()>("request-new-tab", &[&url.to_string()]);
                         }
                     }
@@ -120,8 +120,8 @@ impl GemView {
         request_new_window.connect_activate(move |_,url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    if let Ok(url) = viewer.absolute_url(&url) {
-                        if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                    if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                        if let Ok(url) = viewer.absolute_url(&url) {
                             viewer.emit_by_name::<()>("request-new-window", &[&url.to_string()]);
                         }
                     }
