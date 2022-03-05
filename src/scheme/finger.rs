@@ -1,11 +1,11 @@
 use url::Url;
-use super::gemini::request::RequestError;
 use std::error::Error;
 use std::io::{ Read, Write };
 use std::net::ToSocketAddrs;
 use std::time::Duration;
 
 use super::Content;
+use super::gemini::request::RequestError;
 
 pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     let host_str = match url.host_str() {

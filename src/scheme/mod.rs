@@ -1,4 +1,5 @@
 pub mod data;
+pub mod file;
 pub mod finger;
 pub mod gemini;
 pub mod gopher;

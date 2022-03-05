@@ -809,18 +809,18 @@ impl GemView {
                         match content.mime.as_str() {
                             "text/gemini" => {
                                 viewer.render_gmi(&String::from_utf8_lossy(&content.bytes));
-                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                                 viewer.append_history(&content.url);
+                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                             },
                             s if s.starts_with("text/") => {
                                 viewer.render_text(&String::from_utf8_lossy(&content.bytes));
-                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                                 viewer.append_history(&content.url);
+                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                             },
                             s if s.starts_with("image") => {
                                 viewer.render_image_from_bytes(&content.bytes);
-                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                                 viewer.append_history(&content.url);
+                                viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                             },
                             _ => {
                                 viewer.emit_by_name::<()>("request-download", &[&content.mime]);
