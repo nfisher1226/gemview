@@ -1,6 +1,5 @@
 use url::Url;
 use std::convert::TryFrom;
-use std::fs::ReadDir;
 use std::path::PathBuf;
 use super::Content;
 
@@ -87,7 +86,7 @@ impl ToGmi for PathBuf {
             }
             Ok(page)
         } else {
-            Err("")
+            Err("Error reading directory")
         }
     }
 }

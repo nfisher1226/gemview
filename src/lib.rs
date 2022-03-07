@@ -852,7 +852,7 @@ impl GemView {
     ) -> glib::SignalHandlerId {
         self.connect_local("page-load-started", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
+            let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
             None
         })
@@ -866,7 +866,7 @@ impl GemView {
     ) -> glib::SignalHandlerId {
         self.connect_local("page-load-redirect", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
+            let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
             None
         })
@@ -880,7 +880,7 @@ impl GemView {
     ) -> glib::SignalHandlerId {
         self.connect_local("page-load-failed", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
-            let uri = obj.uri();
+            let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
             None
         })
