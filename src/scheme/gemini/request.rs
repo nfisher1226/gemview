@@ -218,13 +218,11 @@ fn make_gemini_request(
     // Get our request string
     let request = Request::from(url);
 
-    let mut authority = match url.host_str() {
+    let authority = match url.host_str() {
         Some(h) => h.to_string(),
         None => return Err(RequestError::DnsError),
     };
-    if let Some(p) = url.port() {
-        authority.push_str(&format!(":{}", p));
-    }
+    let port = url.port().unwrap_or(1965);
 
     // Get our DNS name
     let dnsname = match authority.as_str().try_into() {
@@ -242,7 +240,7 @@ fn make_gemini_request(
     let client = ClientConnection::new(Arc::new(cfg), dnsname).unwrap();
 
     // Open up a socket
-    let tcp_stream = open_tcp_stream(url, 1965)?;
+    let tcp_stream = open_tcp_stream(url, port)?;
     let mut tls_stream = rustls::StreamOwned::new(client, tcp_stream);
 
 
