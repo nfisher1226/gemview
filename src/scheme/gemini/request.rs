@@ -19,7 +19,7 @@ pub enum RequestError {
     /// Occurs when a DNS error occurs.
     DnsError,
     /// Occurs when some sort of [TLS error](rustls::Error) occurs
-    TlsError(rustls::Error),
+    //TlsError(rustls::Error),
     /// Occurs when the scheme given is unknown. Returns the scheme name.
     UnknownScheme(String),
     /// Occurs when the response from the server cannot be parsed.
@@ -35,9 +35,9 @@ impl std::fmt::Display for RequestError {
             RequestError::DnsError => {
                 write!(f, "DNS Error")
             },
-            RequestError::TlsError(e) => {
-                write!(f, "TLS Error: {}", e)
-            },
+            //RequestError::TlsError(e) => {
+            //    write!(f, "TLS Error: {}", e)
+            //},
             RequestError::UnknownScheme(s) => {
                 write!(f, "Unknown scheme {}", s)
             },
@@ -53,7 +53,7 @@ impl std::error::Error for RequestError {
         match self {
             RequestError::IoError(e) => Some(e),
             RequestError::DnsError => None,
-            RequestError::TlsError(e) => Some(e),
+            //RequestError::TlsError(e) => Some(e),
             RequestError::UnknownScheme(_) => None,
             RequestError::ResponseParseError(e) => Some(e),
         }

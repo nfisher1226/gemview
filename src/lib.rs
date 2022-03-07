@@ -587,6 +587,17 @@ impl GemView {
             },
             Err(e) => match e {
                 url::ParseError::RelativeUrlWithoutBase => {
+                    let base = if let Some((host,_)) = url.split_once('/') {
+                        host
+                    } else {
+                        url
+                    };
+                    if let Some((_,_)) = base.split_once('.') {
+                        let new = format!("gemini://{}", url);
+                        if let Ok(u) = Url::parse(&new) {
+                            return Ok(u);
+                        }
+                    }
                     let origin = url::Url::parse(&self.uri())?;
                     let new = origin.join(&url)?;
                     Ok(new)
