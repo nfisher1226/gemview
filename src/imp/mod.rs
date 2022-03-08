@@ -9,18 +9,18 @@ use std::cell::RefCell;
 mod buffer;
 pub use buffer::Buffer;
 mod history;
-pub use history::History;
+pub(crate) use history::History;
 
 #[derive(Default)]
 pub struct GemView {
-    pub history: RefCell<History>,
-    pub buffer: RefCell<Buffer>,
-    pub font_paragraph: RefCell<FontDescription>,
-    pub font_pre: RefCell<FontDescription>,
-    pub font_quote: RefCell<FontDescription>,
-    pub font_h1: RefCell<FontDescription>,
-    pub font_h2: RefCell<FontDescription>,
-    pub font_h3: RefCell<FontDescription>,
+    pub(crate) history: RefCell<History>,
+    pub(crate) buffer: RefCell<Buffer>,
+    pub(crate) font_paragraph: RefCell<FontDescription>,
+    pub(crate) font_pre: RefCell<FontDescription>,
+    pub(crate) font_quote: RefCell<FontDescription>,
+    pub(crate) font_h1: RefCell<FontDescription>,
+    pub(crate) font_h2: RefCell<FontDescription>,
+    pub(crate) font_h3: RefCell<FontDescription>,
 }
 
 // The central trait for subclassing a GObject

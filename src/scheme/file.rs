@@ -54,7 +54,7 @@ impl TryFrom<Url> for Content {
     }
 }
 
-pub trait ToGmi {
+pub(crate) trait ToGmi {
     type Error;
     fn to_gmi(&self) -> Result<String, Self::Error>;
 }

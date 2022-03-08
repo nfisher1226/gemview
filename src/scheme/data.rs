@@ -1,7 +1,7 @@
 use std::error::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MimeType {
+pub(crate) enum MimeType {
     TextPlain,
     TextGemini,
     ImageJpeg,
@@ -12,14 +12,14 @@ pub enum MimeType {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct DataUrl {
+pub(crate) struct DataUrl {
     mime: MimeType,
     base64: bool,
     data: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Data {
+pub(crate) enum Data {
     Text(String),
     Bytes(Vec<u8>),
 }
@@ -62,11 +62,11 @@ impl TryFrom<&str> for DataUrl {
 }
 
 impl DataUrl {
-    pub fn mime(&self) -> MimeType {
+    pub(crate) fn mime(&self) -> MimeType {
         self.mime
     }
 
-    pub fn decode(&self) -> Result<Data, Box<dyn Error>> {
+    pub(crate) fn decode(&self) -> Result<Data, Box<dyn Error>> {
         match self.mime {
             MimeType::TextPlain | MimeType::TextGemini => {
                 let pl = if self.base64 {

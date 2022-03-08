@@ -10,7 +10,8 @@ pub mod parser;
 use super::Content;
 use parser::LineType;
 
-pub trait GopherMap {
+pub(crate) trait GopherMap {
+    /// Validates that self is a valid Gopher map
     fn is_map(&self) -> bool;
 
     fn parse(&self) -> Vec<LineType>;
@@ -79,7 +80,7 @@ fn trim_path(path: String) -> String {
     }
 }
 
-pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
+pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(70)),
         None => return Err(RequestError::DnsError.into()),

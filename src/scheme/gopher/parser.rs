@@ -2,21 +2,27 @@ use gtk::glib;
 use gtk::pango::FontDescription;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum LineType {
+pub(crate) enum LineType {
+    /// An ordinary text line
     Text(String),
+    /// Gopher link
     Link(Link),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Link {
+pub(crate) struct Link {
+    /// The string displayed to represent the link
     pub display: String,
+    /// The path from the server root to this document
     pub path: String,
+    /// This fqdn of the server
     pub host: String,
+    /// The port this server runs on
     pub port: String,
 }
 
 impl LineType {
-    pub fn parse_line(line: &str) -> Option<Self> {
+    pub(crate) fn parse_line(line: &str) -> Option<Self> {
         if line == "." {
             return None;
         }
@@ -54,7 +60,8 @@ impl LineType {
 }
 
 impl Link {
-    pub fn to_markup(&self, font: &FontDescription) -> String {
+    /// Generates Pango markup from a Gopherr link
+    pub(crate) fn to_markup(&self, font: &FontDescription) -> String {
         let link =
             format!("gopher://{}:{}{}", &self.host, &self.port, &self.path).replace(" ", "%20");
         format!(

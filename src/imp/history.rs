@@ -1,4 +1,4 @@
-pub struct History {
+pub(crate) struct History {
     pub uri: String,
     pub back: Vec<String>,
     pub forward: Vec<String>,

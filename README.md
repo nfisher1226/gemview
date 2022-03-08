@@ -14,6 +14,7 @@ for gtk+ (version 4) implemented in Rust.
 - [x] Display text and images from `data://` url's
 - [x] Browse and render gopher maps, plain text and images over gopher
 - [x] Display finger protocol content
+- [x] Browse local files and directories via 'file://' url's
 - [x] Open http(s) links in a *normal* browser
 - [x] User customizable fonts
 - [x] User customizable colors (via CSS)

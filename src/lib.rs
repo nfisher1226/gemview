@@ -13,6 +13,7 @@
 //! - [x] Display text and images from `data://` url's
 //! - [x] Browse and render gopher maps, plain text and images over gopher
 //! - [x] Display finger protocol content
+//! - [x] Browse local files and directories via 'file://' url's
 //! - [x] Open http(s) links in a *normal* browser
 //! - [x] User customizable fonts
 //! - [x] User customizable colors (via CSS)
@@ -73,7 +74,7 @@ glib::wrapper! {
 /// has been customized for browsing [geminispace](https://gemini.circumlunar.space).
 pub struct GemView(ObjectSubclass<imp::GemView>)
     @extends gtk::TextView, gtk::Widget,
-    @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable, gtk::Actionable;
+    @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 
 impl GemView {
@@ -137,6 +138,7 @@ impl GemView {
         self.imp().history.borrow_mut().uri = String::from(uri);
     }
 
+    /// Visits the previous page, if there is one
     fn previous(&self) -> Option<String> {
         self.imp().history.borrow_mut().previous()
     }
@@ -148,9 +150,6 @@ impl GemView {
 
     /// If there are any items in the `back` history list, retrieves the most
     /// recent one and visits that uri
-    ///
-    /// ## Errors
-    /// Propagates any page load errors
     pub fn go_previous(&self) {
         if let Some(uri) = self.previous() {
             self.load(&uri);
@@ -169,15 +168,14 @@ impl GemView {
 
     /// If there are any items in the `forward` history list, retrieves the most
     /// recent item and visits that uri
-    ///
-    /// ## Errors
-    /// Propagates any page load errors
     pub fn go_next(&self) {
         if let Some(uri) = self.next() {
             self.load(&uri);
         }
     }
 
+    /// Manually appends an item into the browser's history. Normally this function
+    /// will not need to be called directly.
     pub fn append_history(&self, uri: &str) {
         let current = self.uri();
         if &current != uri {
@@ -185,18 +183,25 @@ impl GemView {
         }
     }
 
+    /// Get the MimeType of the current file
     pub fn buffer_mime(&self) -> String {
         self.imp().buffer.borrow().mime.clone()
     }
 
+    /// Set the MimeType of the current file. Normally this function will not
+    /// need to be called directly.
     pub fn set_buffer_mime(&self, mime: &str) {
         self.imp().buffer.borrow_mut().mime = mime.to_string();
     }
 
+    /// Get the contents of the buffer. Can be used to save the current page
+    /// source.
     pub fn buffer_content(&self) -> Vec<u8> {
         self.imp().buffer.borrow().content.clone()
     }
 
+    /// Set the contents of the buffer. Normally this function will not need to
+    /// be called directly
     pub fn set_buffer_content(&self, content: &[u8]) {
         self.imp().buffer.borrow_mut().content = content.to_vec();
     }
@@ -501,6 +506,7 @@ impl GemView {
         }
     }
 
+    /// Renders a GopherMap
     fn render_gopher(&self, content: &scheme::Content) {
         self.clear();
         let buf = self.buffer();
@@ -882,9 +888,6 @@ impl GemView {
     }
 
     /// Reloads the current page
-    ///
-    /// ## Errors
-    /// Propagates ay page load errors
     pub fn reload(&self) {
         self.load(&self.uri());
     }

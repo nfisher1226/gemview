@@ -13,7 +13,7 @@ license = "LGPL-3.0"
 
 [dependencies]
 base64 = "~0.13"
-mime_open = { git = "https://codeberg.org/jeang3nie/mime_open" }
+mime_open = "~0.1"
 once_cell = "~1"
 textwrap = "~0.14"
 tree_magic_mini = "~3.0"

@@ -7,7 +7,8 @@ use url::Url;
 use super::gemini::request::RequestError;
 use super::Content;
 
-pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
+/// Make a finger protocol request
+pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(79)),
         None => return Err(RequestError::DnsError.into()),

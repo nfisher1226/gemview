@@ -1,6 +1,4 @@
 //! A module for parsing the protocol of Gemini itself. This includes its requests and responses.
-//! This module does NOT require any networking stuff. You can disable the [`request`](crate::request) module
-//! by disabling the feature flag `net`.
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// The status code of the gemini response header.
