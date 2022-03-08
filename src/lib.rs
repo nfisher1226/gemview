@@ -619,6 +619,8 @@ impl GemView {
                     self.render_text(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime("text/plain");
+                    self.set_buffer_content(&payload.as_bytes());
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -628,6 +630,8 @@ impl GemView {
                     self.render_gmi(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime("text/gemini");
+                    self.set_buffer_content(&payload.as_bytes());
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -640,6 +644,14 @@ impl GemView {
                     self.render_image_from_bytes(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime(match data.mime() {
+                        MimeType::ImageJpeg => "image/jpeg",
+                        MimeType::ImageSvg => "image/svg+xml",
+                        MimeType::ImagePng => "image/png",
+                        MimeType::ImageOther => "image/other",
+                        _ => unreachable!(),
+                    });
+                    self.set_buffer_content(&payload);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -669,18 +681,24 @@ impl GemView {
                     self.render_gmi(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime(&s);
+                    self.set_buffer_content(&content.bytes);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 s if s.starts_with("text/") => {
                     self.render_text(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime(&s);
+                    self.set_buffer_content(&content.bytes);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 s if s.starts_with("image/") => {
                     self.render_image_from_bytes(&content.bytes);
                     let url = url.to_string();
                     self.append_history(&url);
+                    self.set_buffer_mime(&s);
+                    self.set_buffer_content(&content.bytes);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => {}
@@ -708,6 +726,8 @@ impl GemView {
         receiver.attach(None, move |response| {
             match response {
                 Response::Success(content) => {
+                    viewer.set_buffer_mime(&content.mime);
+                    viewer.set_buffer_content(&content.bytes);
                     if content.mime.starts_with("text") {
                         if content.is_map() {
                             viewer.render_gopher(&content);
@@ -755,6 +775,8 @@ impl GemView {
                     viewer.render_text(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     viewer.append_history(&url);
+                    viewer.set_buffer_mime(&content.mime);
+                    viewer.set_buffer_content(&content.bytes);
                     viewer.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 Response::Error(err) => {
