@@ -58,10 +58,10 @@ impl core::fmt::Display for GemtextNode {
             GemtextNode::Text(s) => write!(f, "{}", s),
             GemtextNode::Link(s, None) => {
                 write!(f, "=> {}", s)
-            },
+            }
             GemtextNode::Link(s, Some(d)) => {
                 write!(f, "=> {} {}", s, d)
-            },
+            }
             GemtextNode::Heading(s) => write!(f, "# {}", s),
             GemtextNode::SubHeading(s) => write!(f, "## {}", s),
             GemtextNode::SubSubHeading(s) => write!(f, "### {}", s),
@@ -315,32 +315,71 @@ mod tests {
         ($n:ident, $c:tt) => {
             #[test]
             fn $n() {
-            use $crate::gemini::parse::*;
-            $c
-        }}
+                use $crate::gemini::parse::*;
+                $c
+            }
+        };
     }
     //
     //====
     //
     test_prelude!(display_test, {
         // Text
-        assert_eq!(GemtextNode::Text(String::from("This is a test")).to_string(), "This is a test");
+        assert_eq!(
+            GemtextNode::Text(String::from("This is a test")).to_string(),
+            "This is a test"
+        );
         // Link
-        assert_eq!(GemtextNode::Link(String::from("gemini://link_test"), None).to_string(), "=> gemini://link_test");
-        assert_eq!(GemtextNode::Link(String::from("gemini://link_test"), Some(String::from("A test lol"))).to_string(), "=> gemini://link_test A test lol");
+        assert_eq!(
+            GemtextNode::Link(String::from("gemini://link_test"), None).to_string(),
+            "=> gemini://link_test"
+        );
+        assert_eq!(
+            GemtextNode::Link(
+                String::from("gemini://link_test"),
+                Some(String::from("A test lol"))
+            )
+            .to_string(),
+            "=> gemini://link_test A test lol"
+        );
         // Heading
-        assert_eq!(GemtextNode::Heading(String::from("A test heading")).to_string(), "# A test heading");
+        assert_eq!(
+            GemtextNode::Heading(String::from("A test heading")).to_string(),
+            "# A test heading"
+        );
         // Subheading
-        assert_eq!(GemtextNode::SubHeading(String::from("A test subheading")).to_string(), "## A test subheading");
+        assert_eq!(
+            GemtextNode::SubHeading(String::from("A test subheading")).to_string(),
+            "## A test subheading"
+        );
         // Subsubheading
-        assert_eq!(GemtextNode::SubSubHeading(String::from("A test subsubheading")).to_string(), "### A test subsubheading");
+        assert_eq!(
+            GemtextNode::SubSubHeading(String::from("A test subsubheading")).to_string(),
+            "### A test subsubheading"
+        );
         // List Item
-        assert_eq!(GemtextNode::ListItem(String::from("A list item")).to_string(), "* A list item");
+        assert_eq!(
+            GemtextNode::ListItem(String::from("A list item")).to_string(),
+            "* A list item"
+        );
         // Blockquote
-        assert_eq!(GemtextNode::Blockquote(String::from("A blockquote test")).to_string(), "> A blockquote test");
+        assert_eq!(
+            GemtextNode::Blockquote(String::from("A blockquote test")).to_string(),
+            "> A blockquote test"
+        );
         // Preformatted
-        assert_eq!(GemtextNode::Preformatted(String::from("A preformatted block"), None).to_string(), "```\nA preformatted block\n```");
-        assert_eq!(GemtextNode::Preformatted(String::from("A preformatted block"), Some(String::from("with alt text"))).to_string(), "```with alt text\nA preformatted block\n```");
+        assert_eq!(
+            GemtextNode::Preformatted(String::from("A preformatted block"), None).to_string(),
+            "```\nA preformatted block\n```"
+        );
+        assert_eq!(
+            GemtextNode::Preformatted(
+                String::from("A preformatted block"),
+                Some(String::from("with alt text"))
+            )
+            .to_string(),
+            "```with alt text\nA preformatted block\n```"
+        );
         // Empty line
         assert_eq!(GemtextNode::EmptyLine.to_string(), "");
     });
@@ -405,7 +444,9 @@ fn main() {
         ];
         // Parse the article
         let actual_parsed_article = parse_gemtext(test_article);
-        for (actual_article_node, test_article_node) in actual_parsed_article.iter().zip(test_article_parsed.iter()) {
+        for (actual_article_node, test_article_node) in
+            actual_parsed_article.iter().zip(test_article_parsed.iter())
+        {
             assert_eq!(actual_article_node, test_article_node);
         }
     });

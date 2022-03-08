@@ -1,11 +1,11 @@
-use url::Url;
 use std::error::Error;
-use std::io::{ Read, Write };
+use std::io::{Read, Write};
 use std::net::ToSocketAddrs;
 use std::time::Duration;
+use url::Url;
 
-use super::Content;
 use super::gemini::request::RequestError;
+use super::Content;
 
 pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
     let host_str = match url.host_str() {
@@ -18,12 +18,9 @@ pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
         None => {
             let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
             return Err(err.into());
-        },
+        }
     };
-    match std::net::TcpStream::connect_timeout(
-        &socket_addrs,
-        Duration::new(10, 0),
-    ) {
+    match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0)) {
         Err(e) => return Err(e.into()),
         Ok(mut stream) => {
             let mut user = if url.username() == "" {
@@ -33,7 +30,8 @@ pub fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
                 }
             } else {
                 url.username()
-            }.to_string();
+            }
+            .to_string();
             user.push_str("\r\n");
             stream.write_all(user.as_bytes()).unwrap();
             let mut bytes = vec![];

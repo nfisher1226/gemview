@@ -55,12 +55,8 @@ impl LineType {
 
 impl Link {
     pub fn to_markup(&self, font: &FontDescription) -> String {
-        let link = format!(
-            "gopher://{}:{}{}",
-            &self.host,
-            &self.port,
-            &self.path
-        ).replace(" ", "%20");
+        let link =
+            format!("gopher://{}:{}{}", &self.host, &self.port, &self.path).replace(" ", "%20");
         format!(
             "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
             font.to_str(),

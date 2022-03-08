@@ -3,8 +3,8 @@
 //! `rustls`.
 //!
 
-use url::Url;
 use super::*;
+use url::Url;
 
 use std::convert::TryFrom;
 use std::net::ToSocketAddrs;
@@ -31,19 +31,19 @@ impl std::fmt::Display for RequestError {
         match self {
             RequestError::IoError(e) => {
                 write!(f, "IO error: {}", e)
-            },
+            }
             RequestError::DnsError => {
                 write!(f, "DNS Error")
-            },
+            }
             //RequestError::TlsError(e) => {
             //    write!(f, "TLS Error: {}", e)
             //},
             RequestError::UnknownScheme(s) => {
                 write!(f, "Unknown scheme {}", s)
-            },
+            }
             RequestError::ResponseParseError(e) => {
                 write!(f, "Response parse error: {}", e)
-            },
+            }
         }
     }
 }
@@ -90,9 +90,7 @@ impl From<&Url> for Request {
     fn from(url: &Url) -> Self {
         let mut raw_string = url.to_string();
         raw_string.push_str("\r\n");
-        Self {
-            raw_string
-        }
+        Self { raw_string }
     }
 }
 
@@ -156,11 +154,13 @@ impl rustls::client::ServerCertVerifier for TofuVerifier {
 
 /// Open a TCP stream to a [`Url`](gmi::url::Url) given with a default port listed.
 fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, RequestError> {
-    let mut addrs_iter = match (
-        match url.host_str() {
-            Some(h) => h.to_string(),
-            None => return Err(RequestError::DnsError),
-        } + ":" + &url.port().unwrap_or(default_port).to_string()).to_socket_addrs() {
+    let mut addrs_iter = match (match url.host_str() {
+        Some(h) => h.to_string(),
+        None => return Err(RequestError::DnsError),
+    } + ":"
+        + &url.port().unwrap_or(default_port).to_string())
+        .to_socket_addrs()
+    {
         Ok(it) => it,
         Err(e) => return Err(RequestError::IoError(e)),
     };
@@ -169,12 +169,10 @@ fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, 
         None => {
             let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
             return Err(RequestError::IoError(err));
-        },
+        }
     };
-    let tcp_stream = match std::net::TcpStream::connect_timeout(
-        &socket_addrs,
-        Duration::new(10, 0),
-    ) {
+    let tcp_stream = match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0))
+    {
         Err(e) => return Err(RequestError::IoError(e)),
         Ok(s) => s,
     };
@@ -208,9 +206,7 @@ fn parse_merc_gemini_resp(resp: &[u8]) -> Result<protocol::Response, RequestErro
 }
 
 /// Make a request to a gemini server
-fn make_gemini_request(
-    url: &Url,
-) -> Result<protocol::Response, RequestError> {
+fn make_gemini_request(url: &Url) -> Result<protocol::Response, RequestError> {
     // These are only needed in this funcion, so we'll put a use here.
     use rustls::client::{ClientConfig, ClientConnection};
     use std::sync::Arc;
@@ -243,15 +239,12 @@ fn make_gemini_request(
     let tcp_stream = open_tcp_stream(url, port)?;
     let mut tls_stream = rustls::StreamOwned::new(client, tcp_stream);
 
-
     use_stream_do_request(request.raw_string.as_str(), &mut tls_stream)?;
     use_stream_get_resp(&mut tls_stream)
 }
 
 /// Make a request to a mercury server
-fn make_mercury_request(
-    url: &Url,
-) -> Result<protocol::Response, RequestError> {
+fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
     let request = Request::from(url);
     let mut stream = open_tcp_stream(url, 1963)?;
     use_stream_do_request(request.raw_string.as_str(), &mut stream)?;
@@ -277,9 +270,7 @@ fn make_mercury_request(
 
 pub fn make_request(url: &Url) -> Result<protocol::Response, RequestError> {
     // Get the scheme, and see what type of request we're making
-    match url
-        .scheme()
-    {
+    match url.scheme() {
         "gemini" => make_gemini_request(url),
         "mercury" => make_mercury_request(url),
         s => Err(RequestError::UnknownScheme(String::from(s))),
@@ -299,7 +290,10 @@ mod tests {
                 assert_eq!(s, "https");
             }
             e => {
-                panic!("Error returned was not an UnknownScheme but instead {:?}", e);
+                panic!(
+                    "Error returned was not an UnknownScheme but instead {:?}",
+                    e
+                );
             }
         }
     }

@@ -1,7 +1,7 @@
-use url::Url;
+use super::Content;
 use std::convert::TryFrom;
 use std::path::PathBuf;
-use super::Content;
+use url::Url;
 
 impl TryFrom<Url> for Content {
     type Error = &'static str;
@@ -13,7 +13,8 @@ impl TryFrom<Url> for Content {
         let mut path = match url.host_str() {
             Some(h) => h,
             None => "",
-        }.to_string();
+        }
+        .to_string();
         path.push_str(url.path());
         if &path == "" {
             return Err("Error: empty path");
@@ -40,10 +41,7 @@ impl TryFrom<Url> for Content {
                             _ => mime,
                         }
                     }
-                    Ok(Content {
-                        mime,
-                        bytes,
-                    })
+                    Ok(Content { mime, bytes })
                 } else {
                     Err("Error reading file")
                 }
@@ -67,17 +65,14 @@ impl ToGmi for PathBuf {
     fn to_gmi(&self) -> Result<String, Self::Error> {
         let mut page = format!("# Index of {}\n", &self.display());
         if let Some(parent) = self.parent() {
-            let link = format!(
-                "file://{} parent directory\n\n",
-                parent.display(),
-            );
+            let link = format!("=> file://{} parent directory\n\n", parent.display(),);
             page.push_str(&link);
         }
         if let Ok(entries) = std::fs::read_dir(self) {
             for entry in entries {
                 if let Ok(entry) = entry {
                     let link = format!(
-                        "file://{} {}\n",
+                        "=> file://{} {}\n",
                         entry.path().display(),
                         entry.file_name().to_string_lossy(),
                     );

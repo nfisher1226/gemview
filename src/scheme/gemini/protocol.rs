@@ -143,10 +143,13 @@ impl core::fmt::Display for ResponseParseError {
         match self {
             ResponseParseError::EmptyResponse => {
                 write!(f, "Error parsing response! The response was empty!")
-            },
+            }
             ResponseParseError::InvalidResponseHeader => {
-                write!(f, "Error parsing response! The response's header was invalid")
-            },
+                write!(
+                    f,
+                    "Error parsing response! The response's header was invalid"
+                )
+            }
         }
     }
 }
@@ -306,7 +309,10 @@ mod tests {
     #[test]
     fn response_parse_slice_empty_body() {
         let raw_response = "20 text/gemini\r\n";
-        let parsed_response = Response::try_from(raw_response.as_bytes()).unwrap(); assert_eq!(parsed_response.status, StatusCode::Success(0)); assert_eq!(parsed_response.meta, "text/gemini"); assert_eq!(parsed_response.data, []);
+        let parsed_response = Response::try_from(raw_response.as_bytes()).unwrap();
+        assert_eq!(parsed_response.status, StatusCode::Success(0));
+        assert_eq!(parsed_response.meta, "text/gemini");
+        assert_eq!(parsed_response.data, []);
     }
     #[test]
     fn response_parse_slice_empty_meta() {

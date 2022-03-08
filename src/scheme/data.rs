@@ -77,7 +77,10 @@ impl DataUrl {
                 };
                 Ok(Data::Text(pl))
             }
-            MimeType::ImageJpeg | MimeType::ImagePng | MimeType::ImageSvg | MimeType::ImageOther => {
+            MimeType::ImageJpeg
+            | MimeType::ImagePng
+            | MimeType::ImageSvg
+            | MimeType::ImageOther => {
                 let pl = if self.base64 {
                     base64::decode(&self.data)?
                 } else {
