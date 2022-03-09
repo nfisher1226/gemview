@@ -842,6 +842,16 @@ impl GemView {
                             .expect("Cannot send data");
                         break;
                     }
+                    gemini::protocol::StatusCode::Input(sensitive) => {
+                        let input = gemini::Input {
+                            url: url.to_string(),
+                            sensitive,
+                        };
+                        sender
+                            .send(gemini::Response::RequestInput(input))
+                            .expect("Cannot send data");
+                        break;
+                    }
                     s => {
                         let estr = format!("{:?}", s);
                         sender
@@ -855,6 +865,14 @@ impl GemView {
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
+                gemini::Response::RequestInput(input) => {
+                    let signal = if input.sensitive == 1 {
+                        "request-input-sensitive"
+                    } else {
+                        "request-input"
+                    };
+                    viewer.emit_by_name::<()>(signal, &[&input.url]);
+                },
                 gemini::Response::Success(content) => {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);

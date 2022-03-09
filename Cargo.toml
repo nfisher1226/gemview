@@ -1,6 +1,6 @@
 [package]
 name = "gemview"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "A Gemini protocol browser in a Gtk+ (v4) widget"
 authors = ["Nathan Fisher"]

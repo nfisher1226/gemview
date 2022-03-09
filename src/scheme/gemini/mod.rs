@@ -10,7 +10,14 @@ pub struct Content {
 }
 
 #[derive(Clone, Debug)]
+pub struct Input {
+    pub url: String,
+    pub sensitive: u8,
+}
+
+#[derive(Clone, Debug)]
 pub enum Response {
     Success(Content),
+    RequestInput(Input),
     Error(String),
 }

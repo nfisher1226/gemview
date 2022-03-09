@@ -111,6 +111,18 @@ impl ObjectImpl for GemView {
                     <()>::static_type().into(),
                 )
                 .build(),
+                Signal::builder(
+                    "request-input",
+                    &[String::static_type().into()],
+                    String::static_type().into(),
+                )
+                .build(),
+                Signal::builder(
+                    "request-input-sensitive",
+                    &[String::static_type().into()],
+                    String::static_type().into(),
+                )
+                .build(),
             ]
         });
         SIGNALS.as_ref()
