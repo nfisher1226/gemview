@@ -844,6 +844,7 @@ impl GemView {
                     }
                     gemini::protocol::StatusCode::Input(sensitive) => {
                         let input = gemini::Input {
+                            meta: response.meta,
                             url: url.to_string(),
                             sensitive,
                         };
@@ -871,7 +872,7 @@ impl GemView {
                     } else {
                         "request-input"
                     };
-                    viewer.emit_by_name::<()>(signal, &[&input.url]);
+                    viewer.emit_by_name::<()>(signal, &[&input.meta, &input.url]);
                 },
                 gemini::Response::Success(content) => {
                     viewer.set_buffer_mime(&content.mime);
@@ -1004,6 +1005,22 @@ impl GemView {
             let obj = values[0].get::<Self>().unwrap();
             let uri = values[1].get::<String>().unwrap();
             f(&obj, uri);
+            None
+        })
+    }
+
+    /// Connects to the "request-input" signal, emitted when the server has
+    /// requested input. The signal handler should repeat the page request with
+    /// the user input appended.
+    pub fn connect_request_input<F: Fn(&Self, String, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-input", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let meta = values[1].get::<String>().unwrap();
+            let url = values[2].get::<String>().unwrap();
+            f(&obj, meta, url);
             None
         })
     }

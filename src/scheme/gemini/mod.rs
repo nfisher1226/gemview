@@ -11,6 +11,7 @@ pub struct Content {
 
 #[derive(Clone, Debug)]
 pub struct Input {
+    pub meta: String,
     pub url: String,
     pub sensitive: u8,
 }

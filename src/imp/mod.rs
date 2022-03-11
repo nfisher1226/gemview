@@ -113,14 +113,14 @@ impl ObjectImpl for GemView {
                 .build(),
                 Signal::builder(
                     "request-input",
-                    &[String::static_type().into()],
-                    String::static_type().into(),
+                    &[String::static_type().into(), String::static_type().into()],
+                    <()>::static_type().into(),
                 )
                 .build(),
                 Signal::builder(
                     "request-input-sensitive",
                     &[String::static_type().into()],
-                    String::static_type().into(),
+                    <()>::static_type().into(),
                 )
                 .build(),
             ]
