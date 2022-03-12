@@ -4,6 +4,7 @@
 //!
 
 use super::*;
+use native_tls::TlsConnector;
 use url::Url;
 
 use std::convert::TryFrom;
@@ -19,6 +20,7 @@ pub enum RequestError {
     /// Occurs when a DNS error occurs.
     DnsError,
     /// Occurs when some sort of [TLS error](rustls::Error) occurs
+    TlsError(String),
     //TlsError(rustls::Error),
     /// Occurs when the scheme given is unknown. Returns the scheme name.
     UnknownScheme(String),
@@ -35,9 +37,9 @@ impl std::fmt::Display for RequestError {
             RequestError::DnsError => {
                 write!(f, "DNS Error")
             }
-            //RequestError::TlsError(e) => {
-            //    write!(f, "TLS Error: {}", e)
-            //},
+            RequestError::TlsError(e) => {
+                write!(f, "TLS Error: {}", e)
+            },
             RequestError::UnknownScheme(s) => {
                 write!(f, "Unknown scheme {}", s)
             }
@@ -54,6 +56,7 @@ impl std::error::Error for RequestError {
             RequestError::IoError(e) => Some(e),
             RequestError::DnsError => None,
             //RequestError::TlsError(e) => Some(e),
+            RequestError::TlsError(_) => None,
             RequestError::UnknownScheme(_) => None,
             RequestError::ResponseParseError(e) => Some(e),
         }
@@ -102,15 +105,15 @@ impl core::fmt::Display for Request {
 
 // This is for the TLS for Gemini. This will just simply trust any TLS
 // certs we get for now. We can implement TOFU later on.
-struct DummyVerifier {}
+//struct DummyVerifier {}
 
-impl DummyVerifier {
+/*impl DummyVerifier {
     pub fn new() -> Self {
         Self {}
     }
-}
+}*/
 
-impl rustls::client::ServerCertVerifier for DummyVerifier {
+/*impl rustls::client::ServerCertVerifier for DummyVerifier {
     fn verify_server_cert(
         &self,
         _end_entity: &rustls::Certificate,
@@ -122,7 +125,7 @@ impl rustls::client::ServerCertVerifier for DummyVerifier {
     ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
         Ok(rustls::client::ServerCertVerified::assertion())
     }
-}
+}*/
 
 /*
 struct TofuVerifier {
@@ -208,36 +211,48 @@ fn parse_merc_gemini_resp(resp: &[u8]) -> Result<protocol::Response, RequestErro
 /// Make a request to a gemini server
 fn make_gemini_request(url: &Url) -> Result<protocol::Response, RequestError> {
     // These are only needed in this funcion, so we'll put a use here.
-    use rustls::client::{ClientConfig, ClientConnection};
-    use std::sync::Arc;
+    //use rustls::client::{ClientConfig, ClientConnection};
+    //use std::sync::Arc;
 
     // Get our request string
     let request = Request::from(url);
 
-    let authority = match url.host_str() {
-        Some(h) => h.to_string(),
-        None => return Err(RequestError::DnsError),
-    };
+    //let authority = match url.host_str() {
+    //    Some(h) => h.to_string(),
+    //    None => return Err(RequestError::DnsError),
+    //};
     let port = url.port().unwrap_or(1965);
 
     // Get our DNS name
-    let dnsname = match authority.as_str().try_into() {
-        Ok(s) => s,
-        Err(_) => return Err(RequestError::DnsError),
-    };
+    //let dnsname = match authority.as_str().try_into() {
+    //    Ok(s) => s,
+    //    Err(_) => return Err(RequestError::DnsError),
+    //};
 
     // Set up rustls
-    let cfg = ClientConfig::builder()
-        .with_safe_defaults()
-        .with_custom_certificate_verifier(Arc::new(DummyVerifier::new()))
-        .with_no_client_auth();
+    //let cfg = ClientConfig::builder()
+    //    .with_safe_defaults()
+    //    .with_custom_certificate_verifier(Arc::new(DummyVerifier::new()))
+    //    .with_no_client_auth();
 
     // Set up our TLS client
-    let client = ClientConnection::new(Arc::new(cfg), dnsname).unwrap();
+    //let client = ClientConnection::new(Arc::new(cfg), dnsname).unwrap();
+
+    let connector = TlsConnector::builder()
+        .danger_accept_invalid_hostnames(true)
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
 
     // Open up a socket
     let tcp_stream = open_tcp_stream(url, port)?;
-    let mut tls_stream = rustls::StreamOwned::new(client, tcp_stream);
+    //let mut tls_stream = rustls::StreamOwned::new(client, tcp_stream);
+    let host = url.host_str().unwrap_or("");
+    let tls_stream = connector.connect(&host, tcp_stream);
+    let mut tls_stream = match tls_stream {
+        Err(e) => return Err(RequestError::TlsError(format!("{:?}", e))),
+        Ok(stream) => stream,
+    };
 
     use_stream_do_request(request.raw_string.as_str(), &mut tls_stream)?;
     use_stream_get_resp(&mut tls_stream)
