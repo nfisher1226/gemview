@@ -39,7 +39,7 @@ impl std::fmt::Display for RequestError {
             }
             RequestError::TlsError(e) => {
                 write!(f, "TLS Error: {}", e)
-            },
+            }
             RequestError::UnknownScheme(s) => {
                 write!(f, "Unknown scheme {}", s)
             }

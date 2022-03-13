@@ -874,7 +874,7 @@ impl GemView {
                     };
                     viewer.append_history(&input.url);
                     viewer.emit_by_name::<()>(signal, &[&input.meta, &input.url]);
-                },
+                }
                 gemini::Response::Success(content) => {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
