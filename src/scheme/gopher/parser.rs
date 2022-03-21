@@ -7,6 +7,8 @@ pub(crate) enum LineType {
     Text(String),
     /// Gopher link
     Link(Link),
+    /// Gopher query
+    Query(Link),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -29,7 +31,13 @@ impl LineType {
         if line.starts_with("i") {
             let mut text = line.split('\t').next().unwrap().to_string();
             text.remove(0);
-            return Some(Self::Text(text));
+            Some(Self::Text(text))
+        } else if line.starts_with("7") {
+            if let Some(link) = Link::from_line(line) {
+                Some(Self::Query(link))
+            } else {
+                None
+            }
         } else {
             let mut line = line.split('\t');
             let mut display = match line.next() {
@@ -60,6 +68,33 @@ impl LineType {
 }
 
 impl Link {
+    fn from_line(line: &str) -> Option<Self> {
+        let mut els = line.split('\t');
+        let mut display = match els.next() {
+            Some(d) => d.to_string(),
+            None => return None,
+        };
+        let display = display.split_off(1);
+        let path = match els.next() {
+            Some(p) => p.to_string(),
+            None => return None,
+        };
+        let host = match els.next() {
+            Some(h) => h.to_string(),
+            None => return None,
+        };
+        let port = match els.next() {
+            Some(p) => p.to_string(),
+            None => return None,
+        };
+        Some(Self {
+            display,
+            path,
+            host,
+            port,
+        })
+    }
+
     /// Generates Pango markup from a Gopherr link
     pub(crate) fn to_markup(&self, font: &FontDescription) -> String {
         let link =

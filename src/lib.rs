@@ -536,7 +536,7 @@ impl GemView {
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
                     let open_menu = Menu::new();
-                    let ln = format!("gopher://{}:{}{}", &link.host, &link.port, &link.path,);
+                    let ln = format!("gopher://{}:{}{}", &link.host, &link.port, &link.path);
                     let ln = urlencoding::encode(&ln);
                     let action_name = format!("viewer.request-new-tab('{}')", &ln,);
                     let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
@@ -553,7 +553,31 @@ impl GemView {
                         viewer.visit(link);
                         gtk::Inhibit(true)
                     });
-                }
+                },
+                gopher::parser::LineType::Query(link) => {
+                    let anchor = buf.create_child_anchor(&mut iter);
+                    let label = gtk::builders::LabelBuilder::new()
+                        .use_markup(true)
+                        .tooltip_text(&format!(
+                            "gopher://{}:{}{}",
+                            &link.host, &link.port, &link.path,
+                        ))
+                        .label(&link.to_markup(&self.font_pre()))
+                        .build();
+                    label.set_cursor_from_name(Some("pointer"));
+                    self.add_child_at_anchor(&label, &anchor);
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
+                    let viewer = self.clone();
+                    label.connect_activate_link(move |_, link| {
+                        viewer.emit_by_name::<()>(
+                            "request-input",
+                            &[&String::from("Enter query"),
+                            &link]
+                        );
+                        gtk::Inhibit(true)
+                    });
+                },
             }
         }
     }
