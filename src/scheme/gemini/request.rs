@@ -193,9 +193,8 @@ fn use_stream_do_request(req: &str, stream: &mut dyn std::io::Write) -> Result<(
 /// Use a stream (std::io::Read) to read a response and parse that response
 fn use_stream_get_resp(stream: &mut dyn std::io::Read) -> Result<protocol::Response, RequestError> {
     let mut buffer: Vec<u8> = Vec::new();
-    match stream.read_to_end(&mut buffer) {
-        Err(e) => return Err(RequestError::IoError(e)),
-        Ok(_) => (),
+    if let Err(e) = stream.read_to_end(&mut buffer) {
+        return Err(RequestError::IoError(e));
     }
     parse_merc_gemini_resp(&buffer)
 }
@@ -248,7 +247,7 @@ fn make_gemini_request(url: &Url) -> Result<protocol::Response, RequestError> {
     let tcp_stream = open_tcp_stream(url, port)?;
     //let mut tls_stream = rustls::StreamOwned::new(client, tcp_stream);
     let host = url.host_str().unwrap_or("");
-    let tls_stream = connector.connect(&host, tcp_stream);
+    let tls_stream = connector.connect(host, tcp_stream);
     let mut tls_stream = match tls_stream {
         Err(e) => return Err(RequestError::TlsError(format!("{:?}", e))),
         Ok(stream) => stream,

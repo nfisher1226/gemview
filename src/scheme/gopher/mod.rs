@@ -94,12 +94,12 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
         }
     };
     match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0)) {
-        Err(e) => return Err(e.into()),
+        Err(e) => Err(e.into()),
         Ok(mut stream) => {
             let path = url.path().to_string();
             let mut path = trim_path(path);
             if let Some(q) = url.query() {
-                path.push_str("?");
+                path.push('?');
                 path.push_str(q);
             }
             path.push_str("\r\n");

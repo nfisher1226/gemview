@@ -22,7 +22,7 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
         }
     };
     match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0)) {
-        Err(e) => return Err(e.into()),
+        Err(e) => Err(e.into()),
         Ok(mut stream) => {
             let mut user = if url.username() == "" {
                 match url.path() {

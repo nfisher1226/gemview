@@ -204,7 +204,7 @@ impl core::convert::TryFrom<&[u8]> for Response {
     /// }
     /// ```
     fn try_from(raw_response: &[u8]) -> Result<Self, ResponseParseError> {
-        if raw_response.len() == 0 {
+        if raw_response.is_empty() {
             return Err(ResponseParseError::EmptyResponse);
         }
         // Let's find the first LF in the response.

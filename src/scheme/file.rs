@@ -10,13 +10,9 @@ impl TryFrom<Url> for Content {
         if url.scheme() != "file" {
             return Err("Error: not a file url");
         }
-        let mut path = match url.host_str() {
-            Some(h) => h,
-            None => "",
-        }
-        .to_string();
+        let mut path = url.host_str().unwrap_or("").to_string();
         path.push_str(url.path());
-        if &path == "" {
+        if path.is_empty() {
             return Err("Error: empty path");
         }
         let path = PathBuf::from(path);
@@ -69,15 +65,13 @@ impl ToGmi for PathBuf {
             page.push_str(&link);
         }
         if let Ok(entries) = std::fs::read_dir(self) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let link = format!(
-                        "=> file://{} {}\n",
-                        entry.path().display(),
-                        entry.file_name().to_string_lossy(),
-                    );
-                    page.push_str(&link);
-                }
+            for entry in entries.flatten() {
+                let link = format!(
+                    "=> file://{} {}\n",
+                    entry.path().display(),
+                    entry.file_name().to_string_lossy(),
+                );
+                page.push_str(&link);
             }
             Ok(page)
         } else {

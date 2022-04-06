@@ -105,7 +105,7 @@ impl GemView {
         request_new_tab.connect_activate(move |_, url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                    if let Ok(url) = urlencoding::decode(&url) {
                         if let Ok(url) = viewer.absolute_url(&url) {
                             viewer.emit_by_name::<()>("request-new-tab", &[&url.to_string()]);
                         }
@@ -117,7 +117,7 @@ impl GemView {
         request_new_window.connect_activate(move |_, url| {
             if let Some(url) = url {
                 if let Some(url) = url.get::<String>() {
-                    if let Ok(url) = urlencoding::decode(&url.to_string()) {
+                    if let Ok(url) = urlencoding::decode(&url) {
                         if let Ok(url) = viewer.absolute_url(&url) {
                             viewer.emit_by_name::<()>("request-new-window", &[&url.to_string()]);
                         }
@@ -178,7 +178,7 @@ impl GemView {
     /// will not need to be called directly.
     pub fn append_history(&self, uri: &str) {
         let current = self.uri();
-        if &current != uri {
+        if current != uri {
             self.imp().history.borrow_mut().append(uri.to_string());
         }
     }
@@ -553,7 +553,7 @@ impl GemView {
                         viewer.visit(link);
                         gtk::Inhibit(true)
                     });
-                },
+                }
                 gopher::parser::LineType::Query(link) => {
                     let anchor = buf.create_child_anchor(&mut iter);
                     let label = gtk::builders::LabelBuilder::new()
@@ -572,12 +572,11 @@ impl GemView {
                     label.connect_activate_link(move |_, link| {
                         viewer.emit_by_name::<()>(
                             "request-input",
-                            &[&String::from("Enter query"),
-                            &link]
+                            &[&String::from("Enter query"), &link],
                         );
                         gtk::Inhibit(true)
                     });
-                },
+                }
             }
         }
     }
@@ -601,7 +600,7 @@ impl GemView {
             Err(e) => match e {
                 url::ParseError::RelativeUrlWithoutBase => {
                     let origin = url::Url::parse(&self.uri())?;
-                    let new = origin.join(&url)?;
+                    let new = origin.join(url)?;
                     Ok(new)
                 }
                 _ => Err(e.into()),
@@ -650,7 +649,7 @@ impl GemView {
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime("text/plain");
-                    self.set_buffer_content(&payload.as_bytes());
+                    self.set_buffer_content(payload.as_bytes());
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -661,7 +660,7 @@ impl GemView {
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime("text/gemini");
-                    self.set_buffer_content(&payload.as_bytes());
+                    self.set_buffer_content(payload.as_bytes());
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -739,7 +738,6 @@ impl GemView {
     fn load_gopher(&self, url: Url) {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let req = url.clone();
-        let sender = sender.clone();
         thread::spawn(move || match gopher::request(&req) {
             Ok(content) => {
                 sender
@@ -785,7 +783,6 @@ impl GemView {
     fn load_finger(&self, url: Url) {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let req = url.clone();
-        let sender = sender.clone();
         thread::spawn(move || match finger::request(&req) {
             Ok(content) => {
                 sender
@@ -819,7 +816,6 @@ impl GemView {
 
     fn load_gemini(&self, url: Url) {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
-        let sender = sender.clone();
         thread::spawn(move || {
             let mut url = url;
             loop {

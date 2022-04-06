@@ -28,16 +28,12 @@ impl LineType {
         if line == "." {
             return None;
         }
-        if line.starts_with("i") {
+        if line.starts_with('i') {
             let mut text = line.split('\t').next().unwrap().to_string();
             text.remove(0);
             Some(Self::Text(text))
-        } else if line.starts_with("7") {
-            if let Some(link) = Link::from_line(line) {
-                Some(Self::Query(link))
-            } else {
-                None
-            }
+        } else if line.starts_with('7') {
+            Link::from_line(line).map(Self::Query)
         } else {
             let mut line = line.split('\t');
             let mut display = match line.next() {
@@ -98,7 +94,7 @@ impl Link {
     /// Generates Pango markup from a Gopherr link
     pub(crate) fn to_markup(&self, font: &FontDescription) -> String {
         let link =
-            format!("gopher://{}:{}{}", &self.host, &self.port, &self.path).replace(" ", "%20");
+            format!("gopher://{}:{}{}", &self.host, &self.port, &self.path).replace(' ', "%20");
         format!(
             "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
             font.to_str(),
