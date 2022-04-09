@@ -1010,10 +1010,10 @@ impl GemView {
         &self,
         f: F,
     ) -> glib::SignalHandlerId {
-        self.connect_local("request-download", true, move |values| {
+        self.connect_local("request-download", true, move |values| -> Option<glib::Value> {
             let obj = values[0].get::<Self>().unwrap();
             let mime = values[1].get::<String>().unwrap();
-            f(&obj, uri);
+            f(&obj, mime);
             None
         })
     }
