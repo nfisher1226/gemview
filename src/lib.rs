@@ -770,6 +770,8 @@ impl GemView {
                         let url = url.to_string();
                         viewer.append_history(&url);
                         viewer.emit_by_name::<()>("page-loaded", &[&url]);
+                    } else {
+                        viewer.emit_by_name::<()>("request-download", &[&content.mime]);
                     }
                 }
                 Response::Error(err) => {
@@ -997,6 +999,20 @@ impl GemView {
         self.connect_local("request-unsupported-scheme", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
             let uri = values[1].get::<String>().unwrap();
+            f(&obj, uri);
+            None
+        })
+    }
+
+    /// Connects to the "request-download" signal, emitter when the browser has
+    /// encountered a request for a file type it does not know how to render
+    pub fn connect_request_download<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-download", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let mime = values[1].get::<String>().unwrap();
             f(&obj, uri);
             None
         })
