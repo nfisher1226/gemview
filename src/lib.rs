@@ -771,7 +771,13 @@ impl GemView {
                         viewer.append_history(&url);
                         viewer.emit_by_name::<()>("page-loaded", &[&url]);
                     } else {
-                        viewer.emit_by_name::<()>("request-download", &[&content.mime]);
+                        let filename = if let Some(segments) = url.path_segments() {
+                            segments.last().unwrap_or("download")
+                        } else {
+                            "download"
+                        }.to_string();
+
+                        viewer.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
                     }
                 }
                 Response::Error(err) => {
@@ -818,8 +824,9 @@ impl GemView {
 
     fn load_gemini(&self, url: Url) {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+        let u = url.clone();
         thread::spawn(move || {
-            let mut url = url;
+            let mut url = u;
             loop {
                 let response = match gemini::request::make_request(&url) {
                     Ok(r) => r,
@@ -917,7 +924,12 @@ impl GemView {
                             viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
                         }
                         _ => {
-                            viewer.emit_by_name::<()>("request-download", &[&content.mime]);
+                            let filename = if let Some(segments) = url.path_segments() {
+                                segments.last().unwrap_or("download")
+                            } else {
+                                "download"
+                            }.to_string();
+                            viewer.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
                         }
                     }
                 }
@@ -1006,14 +1018,15 @@ impl GemView {
 
     /// Connects to the "request-download" signal, emitter when the browser has
     /// encountered a request for a file type it does not know how to render
-    pub fn connect_request_download<F: Fn(&Self, String) + 'static>(
+    pub fn connect_request_download<F: Fn(&Self, String, String) + 'static>(
         &self,
         f: F,
     ) -> glib::SignalHandlerId {
         self.connect_local("request-download", true, move |values| -> Option<glib::Value> {
             let obj = values[0].get::<Self>().unwrap();
             let mime = values[1].get::<String>().unwrap();
-            f(&obj, mime);
+            let filename = values[2].get::<String>().unwrap();
+            f(&obj, mime, filename);
             None
         })
     }

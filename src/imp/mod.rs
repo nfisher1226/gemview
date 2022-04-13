@@ -95,7 +95,7 @@ impl ObjectImpl for GemView {
                 .build(),
                 Signal::builder(
                     "request-download",
-                    &[String::static_type().into()],
+                    &[String::static_type().into(), String::static_type().into()],
                     <()>::static_type().into(),
                 )
                 .build(),
