@@ -1,14 +1,16 @@
-use super::gemini::request::RequestError;
-use std::error::Error;
-use std::io::{Read, Write};
-use std::net::ToSocketAddrs;
-use std::time::Duration;
-use url::Url;
-use urlencoding::decode;
-
 pub mod parser;
-use super::Content;
-use parser::LineType;
+use {
+    parser::LineType,
+    super::{Content, gemini::request::RequestError},
+    std::{
+        error::Error,
+        io::{Read, Write},
+        net::ToSocketAddrs,
+        time::Duration,
+    },
+    url::Url,
+    urlencoding::decode,
+};
 
 pub(crate) trait GopherMap {
     /// Validates that self is a valid Gopher map

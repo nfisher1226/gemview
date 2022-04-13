@@ -1,10 +1,14 @@
-use glib::subclass::Signal;
-use gtk::glib;
-use gtk::pango::{FontDescription, Style, Weight};
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use once_cell::sync::Lazy;
-use std::cell::RefCell;
+use {
+    gtk::{
+        glib,
+        glib::subclass::Signal,
+        pango::{FontDescription, Style, Weight},
+        prelude::*,
+        subclass::prelude::*,
+    },
+    once_cell::sync::Lazy,
+    std::cell::RefCell,
+};
 
 mod buffer;
 pub use buffer::Buffer;

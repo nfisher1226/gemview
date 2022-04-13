@@ -1,5 +1,4 @@
-use gtk::glib;
-use gtk::pango::FontDescription;
+use gtk::{glib, pango::FontDescription};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum LineType {

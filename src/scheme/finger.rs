@@ -1,11 +1,13 @@
-use std::error::Error;
-use std::io::{Read, Write};
-use std::net::ToSocketAddrs;
-use std::time::Duration;
-use url::Url;
-
-use super::gemini::request::RequestError;
-use super::Content;
+use {
+    std::{
+        error::Error,
+        io::{Read, Write},
+        net::ToSocketAddrs,
+        time::Duration,
+    },
+    super::{Content, gemini::request::RequestError},
+    url::Url,
+};
 
 /// Make a finger protocol request
 pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {

@@ -1,73 +1,28 @@
-//! Contents
-//! ========
-//! - [Introduction](#introduction)
-//! - [Features](#features)
-//! - [Usage](#usage)
-//! ## Introduction
-//! GemView is a [gemini protocol](https://gemini.circumlunar.space/) browser widget
-//! for gtk+ (version 4) implemented in Rust.
-//! ## Features
-//! - [x] Browse and render gemini gemtext content
-//! - [x] Display plain text over gemini
-//! - [x] Display images over gemini
-//! - [x] Display text and images from `data://` url's
-//! - [x] Browse and render gopher maps, plain text and images over gopher
-//! - [x] Display finger protocol content
-//! - [x] Browse local files and directories via 'file://' url's
-//! - [x] Open http(s) links in a *normal* browser
-//! - [x] User customizable fonts
-//! - [x] User customizable colors (via CSS)
-//! - [x] Back/forward list
-//! - [ ] History
-//!
-//! ## Usage
-//! ```Yaml
-//! [dependencies]
-//! gemview = 0.2.0
-//!
-//! [dependencies.gtk]
-//! version = "~0.4"
-//! package = "gtk4"
-//! ```
-//! ```Rust
-//! use gemview::GemView;
-//! use gtk::prelude::*;
-//!
-//! let browser = GemView::default();
-//! let scroller = gtk::builders::ScrolledWindowBuilder::new()
-//!     .child(&browser)
-//!     .hexpand(true)
-//!     .vexpand(true)
-//!     .build();
-//! let window = gtk::builders::WindowBuilder::new()
-//!     .child(&scroller)
-//!     .title("GemView")
-//!     .build()
-//! window.show();
-//! browser.visit("gemini://gemini.circumlunar.space");
-//! ```
+#![doc = include_str!("../README.md")]
 
-use glib::Object;
-use glib::{Continue, MainContext, PRIORITY_DEFAULT};
-use gtk::gdk_pixbuf::Pixbuf;
-use gtk::gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup};
-use gtk::glib;
-use gtk::pango::FontDescription;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use textwrap::fill;
-use url::Url;
+use {
+    glib::{Continue, MainContext, Object, PRIORITY_DEFAULT},
+    gtk::{
+        glib,
+        gdk_pixbuf::Pixbuf,
+        gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup},
+        pango::FontDescription,
+        prelude::*,
+        subclass::prelude::*,
+    },
+    textwrap::fill,
+    url::Url,
+    std::{path::PathBuf, thread},
+};
 
-use std::path::PathBuf;
-use std::thread;
-
-mod scheme;
-use gemini::parser::GemtextNode;
-use scheme::data::{Data, DataUrl, MimeType};
-use scheme::gopher::GopherMap;
-use scheme::{finger, gemini, gopher};
-use scheme::{Content, Response};
 mod imp;
+pub mod scheme;
+use {
+    scheme::{Content, data, finger, gemini, gopher, Response},
+    data::{Data, DataUrl, MimeType},
+    gemini::parser::GemtextNode,
+    gopher::GopherMap,
+};
 
 glib::wrapper! {
 /// The gemini browser widget is a subclass of the `TextView` widget which

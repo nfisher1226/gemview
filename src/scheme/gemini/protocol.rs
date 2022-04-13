@@ -189,9 +189,9 @@ impl core::convert::TryFrom<&[u8]> for Response {
     ///
     /// # Example:
     /// ```
-    /// # use bucky::gemini::protocol::Response;
-    /// # use bucky::gemini::protocol::StatusCode;
-    /// # fn main() -> Result<(), bucky::gemini::protocol::ResponseParseError> {
+    /// # use gemview::scheme::gemini::protocol::Response;
+    /// # use gemview::scheme::gemini::protocol::StatusCode;
+    /// # fn main() -> Result<(), gemview::scheme::gemini::protocol::ResponseParseError> {
     /// use std::convert::TryFrom;
     /// let raw_response = r#"20 text/gemini
     /// ## Test response

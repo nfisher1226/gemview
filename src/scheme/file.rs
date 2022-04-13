@@ -1,7 +1,8 @@
-use super::Content;
-use std::convert::TryFrom;
-use std::path::PathBuf;
-use url::Url;
+use {
+    std::{convert::TryFrom, path::PathBuf},
+    super::Content,
+    url::Url,
+};
 
 impl TryFrom<Url> for Content {
     type Error = &'static str;

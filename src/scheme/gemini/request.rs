@@ -82,7 +82,7 @@ impl From<&Url> for Request {
     /// # Example
     /// ```
     /// # use url::Url;
-    /// # use bucky::Request;
+    /// # use gemview::scheme::gemini::request::Request;
     /// # fn main() -> Result<(), url::ParseError> {
     /// use std::convert::TryFrom;
     /// let url = Url::parse("gemini://gemini.circumlunar.space")?;
@@ -271,8 +271,8 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 /// Will return a [`RequestError`] on any sort of error
 /// # Example:
 /// ```no_run
-/// # use bucky::gemini::request;
-/// # use bucky::gemini::protocol::StatusCode;
+/// # use gemview::scheme::gemini::request;
+/// # use gemview::scheme::gemini::protocol::StatusCode;
 /// # use url::Url;
 /// # fn main() -> Result<(), request::RequestError> {
 /// use std::convert::TryFrom;

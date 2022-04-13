@@ -107,12 +107,12 @@ enum ParseState {
 ///
 /// # Example:
 /// ```
-/// # use bucky::gemini::parse;
+/// # use gemview::scheme::gemini::parser;
 /// # fn main() {
 /// let text = r#"# A test page!
 /// Hello! This is a test page!"#;
-/// let gemtext_nodes = parse::parse_gemtext(text);
-/// if let parse::GemtextNode::Heading(s) = &gemtext_nodes[0] {
+/// let gemtext_nodes = parser::parse_gemtext(text);
+/// if let parser::GemtextNode::Heading(s) = &gemtext_nodes[0] {
 ///     assert_eq!(s, "A test page!");
 /// } else {
 ///     panic!("Incorrect type!");
@@ -315,7 +315,7 @@ mod tests {
         ($n:ident, $c:tt) => {
             #[test]
             fn $n() {
-                use $crate::gemini::parse::*;
+                use $crate::gemini::parser::*;
                 $c
             }
         };
