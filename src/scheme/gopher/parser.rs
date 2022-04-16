@@ -8,6 +8,8 @@ pub(crate) enum LineType {
     Link(Link),
     /// Gopher query
     Query(Link),
+    /// An http link
+    Http(String, String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -33,31 +35,23 @@ impl LineType {
             Some(Self::Text(text))
         } else if line.starts_with('7') {
             Link::from_line(line).map(Self::Query)
-        } else {
-            let mut line = line.split('\t');
-            let mut display = match line.next() {
+        } else if line.starts_with('h') {
+            let mut els = line.split('\t');
+            let mut display = match els.next() {
                 Some(d) => d.to_string(),
                 None => return None,
             };
             let display = display.split_off(1);
-            let path = match line.next() {
-                Some(p) => p.to_string(),
-                None => return None,
-            };
-            let host = match line.next() {
-                Some(h) => h.to_string(),
-                None => return None,
-            };
-            let port = match line.next() {
-                Some(p) => p.to_string(),
-                None => return None,
-            };
-            Some(Self::Link(Link {
-                display,
-                path,
-                host,
-                port,
-            }))
+            if let Some(next) = els.next() {
+                if next.starts_with("URL:") {
+                    if let Some((_, url)) = next.split_once(':') {
+                        return Some(Self::Http(display, url.to_string()));
+                    }
+                }
+            }
+            Link::from_line(line).map(Self::Link)
+        } else {
+            Link::from_line(line).map(Self::Link)
         }
     }
 }

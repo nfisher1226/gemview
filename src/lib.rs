@@ -358,6 +358,15 @@ impl GemView {
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
                     let link = link.replace('&', "&amp;");
+                    let (scheme,_) = link.split_once(':').unwrap_or(("gemini",""));
+                    let start_color = match scheme {
+                        "gemini" => "#0000ff",
+                        "gopher" => "#00ff00",
+                        "finger" => "#00ffff",
+                        "data" => "#ff00ff",
+                        "http" | "https" => "#ff0000",
+                        _ => "#ffff00",
+                    };
                     let anchor = buf.create_child_anchor(&mut iter);
                     let label = gtk::builders::LabelBuilder::new()
                         .use_markup(true)
@@ -367,7 +376,8 @@ impl GemView {
                             format!("{}...", &link[..80])
                         })
                         .label(&format!(
-                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                            "<span color=\"{}\"> 🌐  </span><span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                            start_color,
                             font.to_str(),
                             &link,
                             match text {
@@ -410,6 +420,7 @@ impl GemView {
                         .css_classes(vec!["blockquote".to_string()])
                         .build();
                     let label = gtk::builders::LabelBuilder::new()
+                        .selectable(true)
                         .use_markup(true)
                         .css_classes(vec!["blockquote".to_string()])
                         .label(&format!(
@@ -441,6 +452,7 @@ impl GemView {
                     // strip trailing newline
                     text.truncate(text.len() - 1);
                     let label = gtk::builders::LabelBuilder::new()
+                        .selectable(true)
                         .use_markup(true)
                         .css_classes(vec!["preformatted".to_string()])
                         .label(&format!(
@@ -529,6 +541,28 @@ impl GemView {
                             "request-input",
                             &[&String::from("Enter query"), &link],
                         );
+                        gtk::Inhibit(true)
+                    });
+                }
+                gopher::parser::LineType::Http(display, url) => {
+                    let anchor = buf.create_child_anchor(&mut iter);
+                    let label = gtk::builders::LabelBuilder::new()
+                        .use_markup(true)
+                        .tooltip_text(&url)
+                        .label(&format!(
+                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                            self.font_pre().to_str(),
+                            &url,
+                            glib::markup_escape_text(&display)
+                        ))
+                        .build();
+                    label.set_cursor_from_name(Some("pointer"));
+                    self.add_child_at_anchor(&label, &anchor);
+                    iter = buf.end_iter();
+                    buf.insert(&mut iter, "\n");
+                    let viewer = self.clone();
+                    label.connect_activate_link(move |_, link| {
+                        viewer.visit(link);
                         gtk::Inhibit(true)
                     });
                 }
