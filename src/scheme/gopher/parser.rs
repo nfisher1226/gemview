@@ -1,4 +1,8 @@
-use gtk::{glib, pango::FontDescription};
+use {
+    crate::scheme::{ToLabel, ToMarkup},
+    gtk::{gdk::Cursor, glib, Label, pango::FontDescription},
+    std::fmt,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum LineType {
@@ -9,7 +13,7 @@ pub(crate) enum LineType {
     /// Gopher query
     Query(Link),
     /// An http link
-    Http(String, String),
+    Http(ExternLink),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +26,12 @@ pub(crate) struct Link {
     pub host: String,
     /// The port this server runs on
     pub port: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ExternLink {
+    pub display: String,
+    pub url: String,
 }
 
 impl LineType {
@@ -45,7 +55,7 @@ impl LineType {
             if let Some(next) = els.next() {
                 if next.starts_with("URL:") {
                     if let Some((_, url)) = next.split_once(':') {
-                        return Some(Self::Http(display, url.to_string()));
+                        return Some(Self::Http(ExternLink::new(display, url.to_string())));
                     }
                 }
             }
@@ -53,6 +63,18 @@ impl LineType {
         } else {
             Link::from_line(line).map(Self::Link)
         }
+    }
+}
+
+impl fmt::Display for Link {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "gopher://{}:{}{}",
+            &self.host,
+            &self.port,
+            &self.path,
+        )
     }
 }
 
@@ -83,16 +105,59 @@ impl Link {
             port,
         })
     }
+}
 
-    /// Generates Pango markup from a Gopherr link
-    pub(crate) fn to_markup(&self, font: &FontDescription) -> String {
-        let link =
-            format!("gopher://{}:{}{}", &self.host, &self.port, &self.path).replace(' ', "%20");
+impl ToMarkup for Link {
+    /// Generates Pango markup from a Gopher link
+    fn to_markup(&self, font: &FontDescription) -> String {
         format!(
             "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
             font.to_str(),
-            &link,
+            &self.to_string().replace(' ', "%20"),
             glib::markup_escape_text(&self.display)
         )
+    }
+}
+
+impl ToLabel for Link {
+    fn to_label(&self, font: &FontDescription) -> Label {
+        gtk::builders::LabelBuilder::new()
+            .use_markup(true)
+            .tooltip_text(&self.to_string())
+            .label(&self.to_markup(font))
+            .cursor(&Cursor::from_name("pointer", None).unwrap())
+            .build()
+    }
+}
+
+impl ExternLink {
+    pub(crate) fn new(display: String, url: String) -> Self {
+        Self {
+            display,
+            url,
+        }
+    }
+}
+
+impl ToMarkup for ExternLink {
+    fn to_markup(&self, font: &FontDescription) -> String {
+        format!(
+            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+            font.to_string(),
+            &self.url,
+            glib::markup_escape_text(&self.display)
+        )
+    }
+}
+
+impl ToLabel for ExternLink {
+    fn to_label(&self, font: &FontDescription) -> Label {
+        gtk::builders::LabelBuilder::new()
+            .selectable(true)
+            .use_markup(true)
+            .tooltip_text(&self.url)
+            .label(&self.to_markup(font))
+            .cursor(&Cursor::from_name("pointer", None).unwrap())
+            .build()
     }
 }

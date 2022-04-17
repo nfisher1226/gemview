@@ -18,7 +18,7 @@ use {
 mod imp;
 pub mod scheme;
 use {
-    scheme::{Content, data, finger, gemini, gopher, Response},
+    scheme::{Content, data, finger, gemini, gopher, Response, ToLabel},
     data::{Data, DataUrl, MimeType},
     gemini::parser::GemtextNode,
     gopher::GopherMap,
@@ -32,6 +32,12 @@ pub struct GemView(ObjectSubclass<imp::GemView>)
     @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Scrollable;
 }
 
+impl Default for GemView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GemView {
     pub fn new() -> Self {
         Object::new(&[]).expect("Failed to create `GemView`.")
@@ -40,15 +46,7 @@ impl GemView {
     pub fn with_label(label: &str) -> Self {
         Object::new(&[("label", &label)]).expect("Failed to create `GemView`.")
     }
-}
 
-impl Default for GemView {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl GemView {
     fn add_actions(&self) {
         let request_new_tab = SimpleAction::new("request-new-tab", Some(glib::VariantTy::STRING));
         let request_new_window =
@@ -387,15 +385,7 @@ impl GemView {
                         ))
                         .build();
                     label.set_cursor_from_name(Some("pointer"));
-                    let open_menu = Menu::new();
-                    let encoded = urlencoding::encode(&link);
-                    let action_name = format!("viewer.request-new-tab('{}')", &encoded);
-                    let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
-                    let action_name = format!("viewer.request-new-window('{}')", &encoded);
-                    let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
-                    open_menu.append_item(&in_tab);
-                    open_menu.append_item(&in_window);
-                    label.set_extra_menu(Some(&open_menu));
+                    label.set_extra_menu(Some(&Self::context_menu(&link)));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -493,25 +483,8 @@ impl GemView {
                 }
                 gopher::parser::LineType::Link(link) => {
                     let anchor = buf.create_child_anchor(&mut iter);
-                    let label = gtk::builders::LabelBuilder::new()
-                        .use_markup(true)
-                        .tooltip_text(&format!(
-                            "gopher://{}:{}{}",
-                            &link.host, &link.port, &link.path,
-                        ))
-                        .label(&link.to_markup(&self.font_pre()))
-                        .build();
-                    label.set_cursor_from_name(Some("pointer"));
-                    let open_menu = Menu::new();
-                    let ln = format!("gopher://{}:{}{}", &link.host, &link.port, &link.path);
-                    let ln = urlencoding::encode(&ln);
-                    let action_name = format!("viewer.request-new-tab('{}')", &ln,);
-                    let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
-                    let action_name = format!("viewer.request-new-window('{}')", &ln,);
-                    let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
-                    open_menu.append_item(&in_tab);
-                    open_menu.append_item(&in_window);
-                    label.set_extra_menu(Some(&open_menu));
+                    let label = link.to_label(&self.font_pre());
+                    label.set_extra_menu(Some(&Self::context_menu(&link.to_string())));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -523,15 +496,7 @@ impl GemView {
                 }
                 gopher::parser::LineType::Query(link) => {
                     let anchor = buf.create_child_anchor(&mut iter);
-                    let label = gtk::builders::LabelBuilder::new()
-                        .use_markup(true)
-                        .tooltip_text(&format!(
-                            "gopher://{}:{}{}",
-                            &link.host, &link.port, &link.path,
-                        ))
-                        .label(&link.to_markup(&self.font_pre()))
-                        .build();
-                    label.set_cursor_from_name(Some("pointer"));
+                    let label = link.to_label(&self.font_pre());
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -544,19 +509,10 @@ impl GemView {
                         gtk::Inhibit(true)
                     });
                 }
-                gopher::parser::LineType::Http(display, url) => {
+                gopher::parser::LineType::Http(link) => {
                     let anchor = buf.create_child_anchor(&mut iter);
-                    let label = gtk::builders::LabelBuilder::new()
-                        .use_markup(true)
-                        .tooltip_text(&url)
-                        .label(&format!(
-                            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                            self.font_pre().to_str(),
-                            &url,
-                            glib::markup_escape_text(&display)
-                        ))
-                        .build();
-                    label.set_cursor_from_name(Some("pointer"));
+                    let label = link.to_label(&self.font_pre());
+                    label.set_extra_menu(Some(&Self::context_menu(&link.url)));
                     self.add_child_at_anchor(&label, &anchor);
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
@@ -568,6 +524,18 @@ impl GemView {
                 }
             }
         }
+    }
+
+    fn context_menu(link: &str) -> Menu {
+        let menu = Menu::new();
+        let url = urlencoding::encode(link);
+        let action_name = format!("viewer.request-new-tab('{}')", &url);
+        let in_tab = MenuItem::new(Some("Open in new tab"), Some(&action_name));
+        let action_name = format!("viewer.request-new-window('{}')", &url);
+        let in_window = MenuItem::new(Some("Open in new window"), Some(&action_name));
+        menu.append_item(&in_tab);
+        menu.append_item(&in_window);
+        menu
     }
 
     /// Clears the text buffer
@@ -1056,6 +1024,22 @@ impl GemView {
         f: F,
     ) -> glib::SignalHandlerId {
         self.connect_local("request-input", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let meta = values[1].get::<String>().unwrap();
+            let url = values[2].get::<String>().unwrap();
+            f(&obj, meta, url);
+            None
+        })
+    }
+
+    /// Connects to the "request-input-sensitive" signal, emitted when the server
+    /// has requested sensitive input. The signal handler should repeat the page
+    /// request with the user input appended.
+    pub fn connect_request_input_sensitive<F: Fn(&Self, String, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-input-sensitive", true, move |values| {
             let obj = values[0].get::<Self>().unwrap();
             let meta = values[1].get::<String>().unwrap();
             let url = values[2].get::<String>().unwrap();

@@ -4,6 +4,8 @@ pub mod finger;
 pub mod gemini;
 pub mod gopher;
 
+use gtk::{Label, pango::FontDescription};
+
 #[derive(Clone, Debug)]
 pub(crate) struct Content {
     pub mime: String,
@@ -23,4 +25,12 @@ impl Content {
 pub(crate) enum Response {
     Success(Content),
     Error(String),
+}
+
+pub(crate) trait ToMarkup {
+    fn to_markup(&self, _: &FontDescription) -> String;
+}
+
+pub(crate) trait ToLabel {
+    fn to_label(&self, _: &FontDescription) -> Label;
 }
