@@ -111,8 +111,7 @@ impl ToMarkup for Link {
     /// Generates Pango markup from a Gopher link
     fn to_markup(&self, font: &FontDescription) -> String {
         format!(
-            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-            font.to_str(),
+            "<span color=\"#00ff00\"> 🌐  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
             &self.to_string().replace(' ', "%20"),
             glib::markup_escape_text(&self.display)
         )
@@ -142,8 +141,7 @@ impl ExternLink {
 impl ToMarkup for ExternLink {
     fn to_markup(&self, font: &FontDescription) -> String {
         format!(
-            "<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-            font.to_string(),
+            "<span color=\"#ff0000\"> 🌐  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
             &self.url,
             glib::markup_escape_text(&self.display)
         )

@@ -357,13 +357,15 @@ impl GemView {
                     iter = buf.end_iter();
                     let link = link.replace('&', "&amp;");
                     let (scheme,_) = link.split_once(':').unwrap_or(("gemini",""));
-                    let start_color = match scheme {
-                        "gemini" => "#0000ff",
-                        "gopher" => "#00ff00",
-                        "finger" => "#00ffff",
-                        "data" => "#ff00ff",
-                        "http" | "https" => "#ff0000",
-                        _ => "#ffff00",
+                    let start = match scheme {
+                        "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
+                        "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
+                        "finger" => "<span color=\"#00ffff\"> 👉 </span>",
+                        "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
+                        "http" | "https" => "<span color=\"#ff0000\"> 🌐  </span>",
+                        "mailto" => "<span color=\"#ffff00\"> ✉️ </span>",
+                        "file" => "<span color=\"#0000ff\"> 🗄️ </span>",
+                        _ => "<span color=\"#ffff00\"> 🌐  </span>",
                     };
                     let anchor = buf.create_child_anchor(&mut iter);
                     let label = gtk::builders::LabelBuilder::new()
@@ -374,8 +376,8 @@ impl GemView {
                             format!("{}...", &link[..80])
                         })
                         .label(&format!(
-                            "<span color=\"{}\"> 🌐  </span><span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                            start_color,
+                            "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                            start,
                             font.to_str(),
                             &link,
                             match text {
