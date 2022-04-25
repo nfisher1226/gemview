@@ -19,7 +19,7 @@ pub enum RequestError {
     IoError(std::io::Error),
     /// Occurs when a DNS error occurs.
     DnsError,
-    /// Occurs when some sort of [TLS error](rustls::Error) occurs
+    /// Occurs when some sort of [TLS error](native_tls::Error) occurs
     TlsError(String),
     //TlsError(rustls::Error),
     /// Occurs when the scheme given is unknown. Returns the scheme name.
@@ -77,7 +77,7 @@ pub struct Request {
 }
 
 impl From<&Url> for Request {
-    /// Create a [`Request`] from a [`Url`](crate::url::Url) struct. You can also use [`Request::from()`]
+    /// Create a [`Request`] from a [`Url`](url::Url) struct. You can also use [`Request::from()`]
     ///
     /// # Example
     /// ```
@@ -265,7 +265,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
     use_stream_get_resp(&mut stream)
 }
 
-/// Make a request to a [URL](crate::url::Url). The scheme will default to gemini
+/// Make a request to a [URL](url::Url). The scheme will default to gemini
 ///
 /// # Errors:
 /// Will return a [`RequestError`] on any sort of error
