@@ -738,10 +738,11 @@ impl GemView {
 
                         viewer.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
                     }
-                }
+                },
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
-                }
+                },
+                Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
         });
@@ -772,10 +773,11 @@ impl GemView {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
                     viewer.emit_by_name::<()>("page-loaded", &[&url]);
-                }
+                },
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
-                }
+                },
+                Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
         });
@@ -792,7 +794,7 @@ impl GemView {
                     Err(e) => {
                         let estr = format!("{:?}", e);
                         sender
-                            .send(gemini::Response::Error(estr))
+                            .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -805,7 +807,7 @@ impl GemView {
                             Err(e) => {
                                 let estr = format!("{:?}", e);
                                 sender
-                                    .send(gemini::Response::Error(estr))
+                                    .send(scheme::Response::Error(estr))
                                     .expect("Cannot send data");
                                 break;
                             }
@@ -826,25 +828,25 @@ impl GemView {
                             bytes: response.data,
                         };
                         sender
-                            .send(gemini::Response::Success(content))
+                            .send(scheme::Response::Success(content))
                             .expect("Cannot send data");
                         break;
                     }
                     gemini::protocol::StatusCode::Input(sensitive) => {
-                        let input = gemini::Input {
+                        let input = scheme::Input {
                             meta: response.meta,
                             url: url.to_string(),
                             sensitive,
                         };
                         sender
-                            .send(gemini::Response::RequestInput(input))
+                            .send(scheme::Response::RequestInput(input))
                             .expect("Cannot send data");
                         break;
                     }
                     s => {
                         let estr = format!("{:?}", s);
                         sender
-                            .send(gemini::Response::Error(estr))
+                            .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -854,7 +856,7 @@ impl GemView {
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
-                gemini::Response::RequestInput(input) => {
+                scheme::Response::RequestInput(input) => {
                     let signal = if input.sensitive == 1 {
                         "request-input-sensitive"
                     } else {
@@ -863,7 +865,7 @@ impl GemView {
                     viewer.append_history(&input.url);
                     viewer.emit_by_name::<()>(signal, &[&input.meta, &input.url]);
                 }
-                gemini::Response::Success(content) => {
+                scheme::Response::Success(content) => {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
                     let end_url = content.url.unwrap();
@@ -893,7 +895,7 @@ impl GemView {
                         }
                     }
                 }
-                gemini::Response::Error(estr) => {
+                scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }
             }

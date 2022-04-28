@@ -24,8 +24,16 @@ impl Content {
 }
 
 #[derive(Clone, Debug)]
+pub struct Input {
+    pub meta: String,
+    pub url: String,
+    pub sensitive: u8,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) enum Response {
     Success(Content),
+    RequestInput(Input),
     Error(String),
 }
 
