@@ -26,6 +26,7 @@ impl TryFrom<Url> for Content {
             if meta.is_dir() {
                 let gmi = path.to_gmi()?;
                 Ok(Content {
+                    url: None,
                     mime: String::from("text/gemini"),
                     bytes: gmi.as_bytes().to_vec(),
                 })
@@ -38,7 +39,7 @@ impl TryFrom<Url> for Content {
                             _ => mime,
                         }
                     }
-                    Ok(Content { mime, bytes })
+                    Ok(Content { url: None, mime, bytes })
                 } else {
                     Err("Error reading file")
                 }

@@ -819,8 +819,8 @@ impl GemView {
                         } else {
                             response.meta
                         };
-                        let url = url.to_string();
-                        let content = gemini::Content {
+                        let url = Some(url.to_string());
+                        let content = scheme::Content {
                             url,
                             mime,
                             bytes: response.data,
@@ -866,21 +866,22 @@ impl GemView {
                 gemini::Response::Success(content) => {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
+                    let end_url = content.url.unwrap();
                     match content.mime.as_str() {
                         "text/gemini" => {
                             viewer.render_gmi(&String::from_utf8_lossy(&content.bytes));
-                            viewer.append_history(&content.url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
+                            viewer.append_history(&end_url);
+                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
                         }
                         s if s.starts_with("text/") => {
                             viewer.render_text(&String::from_utf8_lossy(&content.bytes));
-                            viewer.append_history(&content.url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
+                            viewer.append_history(&end_url);
+                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
                         }
                         s if s.starts_with("image") => {
                             viewer.render_image_from_bytes(&content.bytes);
-                            viewer.append_history(&content.url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&content.url]);
+                            viewer.append_history(&end_url);
+                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
                         }
                         _ => {
                             let filename = if let Some(segments) = url.path_segments() {

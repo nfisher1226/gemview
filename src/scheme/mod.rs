@@ -8,6 +8,7 @@ use gtk::{Label, pango::FontDescription};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Content {
+    pub url: Option<String>,
     pub mime: String,
     pub bytes: Vec<u8>,
 }
@@ -15,6 +16,7 @@ pub(crate) struct Content {
 impl Content {
     pub(crate) fn from_bytes(bytes: Vec<u8>) -> Self {
         Self {
+            url: None,
             mime: tree_magic_mini::from_u8(&bytes).to_string(),
             bytes,
         }

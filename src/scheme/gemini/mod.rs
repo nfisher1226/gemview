@@ -3,13 +3,6 @@ pub mod protocol;
 pub mod request;
 
 #[derive(Clone, Debug)]
-pub struct Content {
-    pub url: String,
-    pub mime: String,
-    pub bytes: Vec<u8>,
-}
-
-#[derive(Clone, Debug)]
 pub struct Input {
     pub meta: String,
     pub url: String,
@@ -17,8 +10,8 @@ pub struct Input {
 }
 
 #[derive(Clone, Debug)]
-pub enum Response {
-    Success(Content),
+pub(crate) enum Response {
+    Success(super::Content),
     RequestInput(Input),
     Error(String),
 }
