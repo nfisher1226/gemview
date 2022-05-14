@@ -21,6 +21,20 @@ pub enum Status {
     ServerError,
 }
 
+impl TryFrom<u8> for Status {
+    type Error = ResponseParseError;
+
+    fn try_from(code: u8) -> Result<Self, Self::Error> {
+        match code {
+            2 => Ok(Self::Success),
+            3 => Ok(Self::Redirect),
+            4 => Ok(Self::ClientError),
+            5 => Ok(Self::ServerError),
+            _ => Err(ResponseParseError::InvalidResponseHeader),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Response {
     pub status: Status,
@@ -35,7 +49,7 @@ impl TryFrom<&[u8]> for Response {
         if raw.is_empty() {
             return Err(ResponseParseError::EmptyResponse);
         }
-        let lf = match raw.iter().enumerate().find(|(_i,b)| **b == b'\n') {
+        let lf = match raw.iter().enumerate().find(|(_,b)| **b == b'\n') {
             Some((i,_)) => i,
             None => return Err(ResponseParseError::InvalidResponseHeader),
         };
@@ -48,20 +62,13 @@ impl TryFrom<&[u8]> for Response {
             Some((s,m)) => (s, String::from(m.trim())),
         };
         let status = match status.parse::<u8>() {
-            Ok(n) => match n {
-                2 => Status::Success,
-                3 => Status::Redirect,
-                4 => Status::ClientError,
-                5 => Status::ServerError,
-                _ => return Err(ResponseParseError::InvalidResponseHeader),
-            },
+            Ok(n) => Status::try_from(n)?,
             Err(_) => return Err(ResponseParseError::InvalidResponseHeader),
         };
-        let data = Vec::from(&raw[lf + 1..]);
         Ok(Response {
             status,
             meta,
-            data,
+            data: Vec::from(&raw[lf + 1..]),
         })
     }
 }
@@ -96,3 +103,35 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn status_from_u8() {
+        assert_eq!(Status::try_from(2).unwrap(), Status::Success);
+    }
+    #[test]
+    fn response_parse() {
+        let raw = "2 text/gemini 0\r\nLorum Ipsum";
+        let response = Response::try_from(raw.as_bytes()).unwrap();
+        assert_eq!(response.status, Status::Success);
+        assert_eq!(response.meta, "text/gemini 0");
+        assert_eq!(response.data, "Lorum Ipsum".as_bytes());
+    }
+    #[test]
+    fn response_parse_empty() {
+        let raw = "";
+        let response = Response::try_from(raw.as_bytes()).unwrap_err();
+        assert_eq!(response, ResponseParseError::EmptyResponse);
+    }
+    #[test]
+    fn response_parse_missing_space() {
+        let raw = "2text/gemini\r\n#Hello!";
+        let response = Response::try_from(raw.as_bytes()).unwrap_err();
+        assert_eq!(response, ResponseParseError::InvalidResponseHeader);
+    }
+}
+

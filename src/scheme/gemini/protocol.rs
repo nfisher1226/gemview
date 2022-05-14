@@ -165,7 +165,7 @@ impl core::convert::TryFrom<&[u8]> for Response {
     /// ```
     /// # use gemview::scheme::gemini::protocol::Response;
     /// # use gemview::scheme::gemini::protocol::StatusCode;
-    /// # fn main() -> Result<(), gemview::scheme::gemini::protocol::ResponseParseError> {
+    /// # fn main() -> Result<(), gemview::scheme::ResponseParseError> {
     /// use std::convert::TryFrom;
     /// let raw_response = r#"20 text/gemini
     /// ## Test response

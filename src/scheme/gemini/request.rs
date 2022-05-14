@@ -223,7 +223,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 /// # use gemview::scheme::gemini::request;
 /// # use gemview::scheme::gemini::protocol::StatusCode;
 /// # use url::Url;
-/// # fn main() -> Result<(), request::RequestError> {
+/// # fn main() -> Result<(), gemview::scheme::RequestError> {
 /// use std::convert::TryFrom;
 /// let url = Url::parse("gemini://gemini.circumlunar.space/").unwrap();
 /// let response = request::make_request(&url)?;
