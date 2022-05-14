@@ -5,7 +5,7 @@ use {
         net::ToSocketAddrs,
         time::Duration,
     },
-    super::{Content, gemini::request::RequestError},
+    super::{Content, RequestError},
     url::Url,
 };
 

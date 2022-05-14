@@ -1,4 +1,5 @@
 //! A module for parsing the protocol of Gemini itself. This includes its requests and responses.
+use crate::scheme::ResponseParseError;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// The status code of the gemini response header.
@@ -126,33 +127,6 @@ impl From<StatusCode> for u8 {
         }
     }
 }
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-/// An error in parsing a response header from a server
-pub enum ResponseParseError {
-    /// The entire response was empty.
-    EmptyResponse,
-    /// The response header was invalid and could not be parsed
-    InvalidResponseHeader,
-}
-
-impl core::fmt::Display for ResponseParseError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            ResponseParseError::EmptyResponse => {
-                write!(f, "Error parsing response! The response was empty!")
-            }
-            ResponseParseError::InvalidResponseHeader => {
-                write!(
-                    f,
-                    "Error parsing response! The response's header was invalid"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for ResponseParseError {}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// A Gemini response.

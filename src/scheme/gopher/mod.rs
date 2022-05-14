@@ -1,7 +1,7 @@
 pub mod parser;
 use {
     parser::LineType,
-    super::{Content, gemini::request::RequestError},
+    super::{Content, RequestError},
     std::{
         error::Error,
         io::{Read, Write},
@@ -27,29 +27,11 @@ impl GopherMap for Content {
                 if line == "." {
                     break;
                 }
-                if !line.starts_with('0')
-                    && !line.starts_with('1')
-                    && !line.starts_with('2')
-                    && !line.starts_with('3')
-                    && !line.starts_with('4')
-                    && !line.starts_with('5')
-                    && !line.starts_with('6')
-                    && !line.starts_with('7')
-                    && !line.starts_with('8')
-                    && !line.starts_with('9')
-                    && !line.starts_with('+')
-                    && !line.starts_with('g')
-                    && !line.starts_with('I')
-                    && !line.starts_with('T')
-                    && !line.starts_with(':')
-                    && !line.starts_with(';')
-                    && !line.starts_with('<')
-                    && !line.starts_with('d')
-                    && !line.starts_with('h')
-                    && !line.starts_with('i')
-                    && !line.starts_with('s')
-                {
-                    return false;
+                match &line[0..1] {
+                    "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" |
+                    "+" | "g" | "I" | "T" | ":" | ";" | "<" | "d" | "h" |
+                    "i" | "s" => continue,
+                    _ => return false,
                 }
             }
             true

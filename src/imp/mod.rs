@@ -127,6 +127,12 @@ impl ObjectImpl for GemView {
                     <()>::static_type().into(),
                 )
                 .build(),
+                Signal::builder(
+                    "request-upload",
+                    &[String::static_type().into()],
+                    <()>::static_type().into(),
+                )
+                .build(),
             ]
         });
         SIGNALS.as_ref()
