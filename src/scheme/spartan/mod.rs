@@ -94,9 +94,37 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
                 path.push('?');
                 path.push_str(q);
             }
-            path.push_str(" 0\r\n");
             let path = decode(&path)?;
-            stream.write_all(path.as_bytes()).unwrap();
+            let request = format!("{} {} 0\r\n", url.host_str().unwrap(), path);
+            stream.write_all(request.as_bytes()).unwrap();
+            let mut bytes = vec![];
+            stream.read_to_end(&mut bytes).unwrap();
+            Ok(Content::from_bytes(bytes))
+        }
+    }
+}
+
+pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Content, Box<dyn Error>> {
+    let host_str = match url.host_str() {
+        Some(h) => format!("{}:{}", h, url.port().unwrap_or(300)),
+        None => return Err(RequestError::DnsError.into()),
+    };
+    let mut it = host_str.to_socket_addrs()?;
+    let socket_addrs = match it.next() {
+        Some(s) => s,
+        None => {
+            let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
+            return Err(err.into());
+        }
+    };
+    match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0)) {
+        Err(e) => Err(e.into()),
+        Ok(mut stream) => {
+            let path = url.path().to_string();
+            let path = decode(&path)?;
+            let header = format!("{} {} {}", url.host_str().unwrap(), path, data.len());
+            let request = [&header.as_bytes(), data].concat();
+            stream.write_all(&request).unwrap();
             let mut bytes = vec![];
             stream.read_to_end(&mut bytes).unwrap();
             Ok(Content::from_bytes(bytes))
