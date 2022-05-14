@@ -18,7 +18,7 @@ use {
 mod imp;
 pub mod scheme;
 use {
-    scheme::{Content, data, finger, gemini, gopher, Response, ToLabel},
+    scheme::{Content, data, finger, gemini, gopher, Response, ToLabel, spartan},
     data::{Data, DataUrl, MimeType},
     gemini::parser::GemtextNode,
     gopher::GopherMap,
@@ -359,6 +359,7 @@ impl GemView {
                     let (scheme,_) = link.split_once(':').unwrap_or(("gemini",""));
                     let start = match scheme {
                         "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
+                        "spartan" => "<span color=\"#0000ff\"> 🌐  </span>",
                         "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
                         "finger" => "<span color=\"#00ffff\"> 👉 </span>",
                         "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
@@ -396,6 +397,69 @@ impl GemView {
                         viewer.visit(link);
                         gtk::Inhibit(true)
                     });
+                }
+                GemtextNode::Prompt(link, text) => {
+                    let font = self.font_paragraph();
+                    iter = buf.end_iter();
+                    let link = link.replace('&', "&amp;");
+                    match self.uri().split_once(':') {
+                        Some((s, _)) if s == "spartan" => {
+                            let start = "<span color=\"#0000ff\"> 🌐  </span>";
+                            let anchor = buf.create_child_anchor(&mut iter);
+                            let label = gtk::builders::LabelBuilder::new()
+                                .use_markup(true)
+                                .tooltip_text(&if link.len() < 80 {
+                                    link.clone()
+                                } else {
+                                    format!("{}...", &link[..80])
+                                })
+                                .label(&format!(
+                                    "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                                    start,
+                                    font.to_str(),
+                                    &link,
+                                    match text {
+                                        Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
+                                        None => self.wrap_text(&link, self.font_paragraph().size()),
+                                    },
+                                ))
+                                .build();
+                            label.set_cursor_from_name(Some("pointer"));
+                            self.add_child_at_anchor(&label, &anchor);
+                            iter = buf.end_iter();
+                            buf.insert(&mut iter, "\n");
+                            let viewer = self.clone();
+                            label.connect_activate_link(move |_, link| {
+                                viewer.emit_by_name::<()>("request-upload", &[&link]);
+                                gtk::Inhibit(true)
+                            });
+                        },
+                        _ => {
+                            buf.insert_markup(
+                                &mut iter,
+                                &match text {
+                                    Some(t) => {
+                                        format!(
+                                            "<span font=\"{}\">{} {}</span>",
+                                            font.to_str(),
+                                            self.wrap_text(&link, self.font_paragraph().size()),
+                                            self.wrap_text(&t, self.font_paragraph().size()),
+                                        )
+                                    }
+                                    None => {
+                                        format!(
+                                            "<span font=\"{}\">{}</span>",
+                                            font.to_str(),
+                                            self.wrap_text(&link, self.font_paragraph().size()),
+                                        )
+                                    }
+                                }
+                            );
+                            iter = buf.end_iter();
+                            buf.insert(&mut iter, "\n");
+                            continue;
+                        }
+                    }
                 }
                 GemtextNode::Blockquote(text) => {
                     let font = self.font_quote();
@@ -588,6 +652,7 @@ impl GemView {
             "gopher" => self.load_gopher(url),
             "file" => self.load_file(url),
             "finger" => self.load_finger(url),
+            "spartan" => self.load_spartan(url),
             _ => {}
         }
     }
@@ -783,6 +848,65 @@ impl GemView {
         });
     }
 
+    fn load_spartan(&self, url: Url) {
+        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+        let u = url.clone();
+        thread::spawn(move || {
+            let mut url = u;
+            loop {
+                let response = match spartan::request(&url) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        let estr = format!("{:?}", e);
+                        sender
+                            .send(scheme::Response::Error(estr))
+                            .expect("Cannot send data");
+                        break;
+                    }
+                };
+                match response.status {
+                    spartan::Status::Redirect => {
+                        println!("Redirect with meta {}", response.meta);
+                        url.set_path(&response.meta);
+                    }
+                    spartan::Status::Success => {
+                        let mime = if response.meta.starts_with("text/gemini") {
+                            String::from("text/gemini")
+                        } else if let Some((mime, _)) = response.meta.split_once(' ') {
+                            String::from(mime)
+                        } else {
+                            response.meta
+                        };
+                        let url = Some(url.to_string());
+                        let content = scheme::Content {
+                            url,
+                            mime,
+                            bytes: response.data,
+                        };
+                        sender
+                            .send(scheme::Response::Success(content))
+                            .expect("Cannot send data");
+                        break;
+                    }
+                    _ => break,
+                }
+            }
+        });
+        let viewer = self.clone();
+        receiver.attach(None, move |response| {
+            match response {
+                scheme::Response::Success(content) => {
+                    viewer.process_gemini_response_success(&content, &url)
+                },
+                scheme::Response::Error(estr) => {
+                    viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
+                },
+                scheme::Response::RequestInput(_) => unreachable!(),
+            }
+            Continue(false)
+        });
+    }
+
     fn load_gemini(&self, url: Url) {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let u = url.clone();
@@ -866,34 +990,7 @@ impl GemView {
                     viewer.emit_by_name::<()>(signal, &[&input.meta, &input.url]);
                 }
                 scheme::Response::Success(content) => {
-                    viewer.set_buffer_mime(&content.mime);
-                    viewer.set_buffer_content(&content.bytes);
-                    let end_url = content.url.unwrap();
-                    match content.mime.as_str() {
-                        "text/gemini" => {
-                            viewer.render_gmi(&String::from_utf8_lossy(&content.bytes));
-                            viewer.append_history(&end_url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
-                        }
-                        s if s.starts_with("text/") => {
-                            viewer.render_text(&String::from_utf8_lossy(&content.bytes));
-                            viewer.append_history(&end_url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
-                        }
-                        s if s.starts_with("image") => {
-                            viewer.render_image_from_bytes(&content.bytes);
-                            viewer.append_history(&end_url);
-                            viewer.emit_by_name::<()>("page-loaded", &[&end_url]);
-                        }
-                        _ => {
-                            let filename = if let Some(segments) = url.path_segments() {
-                                segments.last().unwrap_or("download")
-                            } else {
-                                "download"
-                            }.to_string();
-                            viewer.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
-                        }
-                    }
+                    viewer.process_gemini_response_success(&content, &url);
                 }
                 scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
@@ -901,6 +998,37 @@ impl GemView {
             }
             Continue(false)
         });
+    }
+
+    fn process_gemini_response_success(&self, content: &Content, url: &Url) {
+        self.set_buffer_mime(&content.mime);
+        self.set_buffer_content(&content.bytes);
+        let end_url = content.url.as_ref().unwrap();
+        match content.mime.as_str() {
+            "text/gemini" => {
+                self.render_gmi(&String::from_utf8_lossy(&content.bytes));
+                self.append_history(end_url);
+                self.emit_by_name::<()>("page-loaded", &[end_url]);
+            }
+            s if s.starts_with("text/") => {
+                self.render_text(&String::from_utf8_lossy(&content.bytes));
+                self.append_history(end_url);
+                self.emit_by_name::<()>("page-loaded", &[end_url]);
+            }
+            s if s.starts_with("image") => {
+                self.render_image_from_bytes(&content.bytes);
+                self.append_history(end_url);
+                self.emit_by_name::<()>("page-loaded", &[end_url]);
+            }
+            _ => {
+                let filename = if let Some(segments) = url.path_segments() {
+                    segments.last().unwrap_or("download")
+                } else {
+                    "download"
+                }.to_string();
+                self.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
+            }
+        }
     }
 
     /// Reloads the current page
@@ -1049,6 +1177,20 @@ impl GemView {
             let meta = values[1].get::<String>().unwrap();
             let url = values[2].get::<String>().unwrap();
             f(&obj, meta, url);
+            None
+        })
+    }
+
+    /// Connects to the "request-upload" signal, emitted when clicking on a
+    /// Spartan protocol Prompt link
+    pub fn connect_request_upload<F: Fn(&Self, String) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("request-upload", true, move |values| {
+            let obj = values[0].get::<Self>().unwrap();
+            let uri = values[1].get::<String>().unwrap();
+            f(&obj, uri);
             None
         })
     }

@@ -42,10 +42,10 @@ pub struct Response {
     pub data: Vec<u8>,
 }
 
-impl TryFrom<&[u8]> for Response {
+impl TryFrom<&Vec<u8>> for Response {
     type Error = ResponseParseError;
 
-    fn try_from(raw: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(raw: &Vec<u8>) -> Result<Self, Self::Error> {
         if raw.is_empty() {
             return Err(ResponseParseError::EmptyResponse);
         }
@@ -73,7 +73,7 @@ impl TryFrom<&[u8]> for Response {
     }
 }
 
-pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
+pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(300)),
         None => return Err(RequestError::DnsError.into()),
@@ -99,7 +99,8 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
             stream.write_all(request.as_bytes()).unwrap();
             let mut bytes = vec![];
             stream.read_to_end(&mut bytes).unwrap();
-            Ok(Content::from_bytes(bytes))
+            let response = Response::try_from(&bytes)?;
+            Ok(response)
         }
     }
 }

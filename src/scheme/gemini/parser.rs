@@ -14,6 +14,12 @@ pub enum GemtextNode {
     /// The first string contained is the link itself and the second string is an optional
     /// descriptor
     Link(String, Option<String>),
+    /// A prompt (Spartan only)
+    ///
+    /// A prompt is a line starting with the characters "=:" followed by a space
+    /// The first string is the link and any further characters make up the optional
+    /// display string
+    Prompt(String, Option<String>),
     /// A heading
     /// A heading starts with a singular # with a space following.
     /// The string contained is the text that follows the heading marker
@@ -62,6 +68,12 @@ impl core::fmt::Display for GemtextNode {
             GemtextNode::Link(s, Some(d)) => {
                 write!(f, "=> {} {}", s, d)
             }
+            Self::Prompt(s, None) => {
+                write!(f, "=: {}", s)
+            }
+            Self::Prompt(s, Some(d)) => {
+                write!(f, "=: {} {}", s, d)
+            }
             GemtextNode::Heading(s) => write!(f, "# {}", s),
             GemtextNode::SubHeading(s) => write!(f, "## {}", s),
             GemtextNode::SubSubHeading(s) => write!(f, "### {}", s),
@@ -83,8 +95,11 @@ enum ParseState {
     Text,
     FirstLinkChar,
     SecondLinkChar,
+    SecondPromptChar,
     LinkLink,
+    PromptLink,
     LinkDesc,
+    PromptDesc,
     ListWaitForSpace,
     ListItem,
     FirstTick,
@@ -178,6 +193,7 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                 //=====
                 ParseState::FirstLinkChar => match c {
                     '>' => current_parse_state = ParseState::SecondLinkChar,
+                    ':' => current_parse_state = ParseState::SecondPromptChar,
                     _ => {
                         current_parse_state = ParseState::Text;
                     }
@@ -188,6 +204,12 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         temp1.push(c);
                     }
                 }
+                ParseState::SecondPromptChar => {
+                    if !c.is_whitespace() {
+                        current_parse_state = ParseState::PromptLink;
+                        temp1.push(c);
+                    }
+                }
                 ParseState::LinkLink => {
                     if c.is_whitespace() {
                         current_parse_state = ParseState::LinkDesc;
@@ -195,7 +217,15 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         temp1.push(c);
                     }
                 }
+                ParseState::PromptLink => {
+                    if c.is_whitespace() {
+                        current_parse_state = ParseState::PromptDesc;
+                    } else {
+                        temp1.push(c);
+                    }
+                }
                 ParseState::LinkDesc => temp2.push(c),
+                ParseState::PromptDesc => temp2.push(c),
                 //=====
                 //List parsing
                 //=====
@@ -274,12 +304,21 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
             ParseState::Text => nodes.push(GemtextNode::Text(line.to_string())),
 
             ParseState::SecondLinkChar => nodes.push(GemtextNode::Text("=".to_string())),
+            ParseState::SecondPromptChar => nodes.push(GemtextNode::Text("=".to_string())),
             ParseState::LinkLink => nodes.push(GemtextNode::Link(temp1, None)),
+            ParseState::PromptLink => nodes.push(GemtextNode::Link(temp1, None)),
             ParseState::LinkDesc => {
                 if temp2.is_empty() {
                     nodes.push(GemtextNode::Link(temp1, None));
                 } else {
                     nodes.push(GemtextNode::Link(temp1, Some(temp2)));
+                }
+            }
+            ParseState::PromptDesc => {
+                if temp2.is_empty() {
+                    nodes.push(GemtextNode::Prompt(temp1, None));
+                } else {
+                    nodes.push(GemtextNode::Prompt(temp1, Some(temp2)));
                 }
             }
 
