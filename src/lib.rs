@@ -431,6 +431,7 @@ impl GemView {
                             buf.insert(&mut iter, "\n");
                             let viewer = self.clone();
                             label.connect_activate_link(move |_, link| {
+                                viewer.set_uri(&link);
                                 viewer.emit_by_name::<()>("request-upload", &[&link]);
                                 gtk::Inhibit(true)
                             });
