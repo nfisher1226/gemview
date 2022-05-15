@@ -3,8 +3,8 @@
 //! `rustls`.
 //!
 
-use crate::scheme::RequestError;
 use super::*;
+use crate::scheme::RequestError;
 use native_tls::TlsConnector;
 use url::Url;
 

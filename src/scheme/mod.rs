@@ -5,7 +5,7 @@ pub mod gemini;
 pub mod gopher;
 pub mod spartan;
 
-use gtk::{Label, pango::FontDescription};
+use gtk::{pango::FontDescription, Label};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Content {

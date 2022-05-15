@@ -1,11 +1,11 @@
 use {
+    super::{Content, RequestError},
     std::{
         error::Error,
         io::{Read, Write},
         net::ToSocketAddrs,
         time::Duration,
     },
-    super::{Content, RequestError},
     url::Url,
 };
 

@@ -3,25 +3,25 @@
 use {
     glib::{Continue, MainContext, Object, PRIORITY_DEFAULT},
     gtk::{
-        glib,
         gdk_pixbuf::Pixbuf,
         gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup},
+        glib,
         pango::FontDescription,
         prelude::*,
         subclass::prelude::*,
     },
+    std::{path::PathBuf, thread},
     textwrap::fill,
     url::Url,
-    std::{path::PathBuf, thread},
 };
 
 mod imp;
 pub mod scheme;
 use {
-    scheme::{Content, data, finger, gemini, gopher, Response, ToLabel, spartan},
     data::{Data, DataUrl, MimeType},
     gemini::parser::GemtextNode,
     gopher::GopherMap,
+    scheme::{data, finger, gemini, gopher, spartan, Content, Response, ToLabel},
 };
 
 glib::wrapper! {
@@ -357,8 +357,8 @@ impl GemView {
                     iter = buf.end_iter();
                     let link = link.replace('&', "&amp;");
                     let u = self.uri();
-                    let (old,_) = u.split_once(':').unwrap_or(("gemini",""));
-                    let (scheme,_) = link.split_once(':').unwrap_or((old,""));
+                    let (old, _) = u.split_once(':').unwrap_or(("gemini", ""));
+                    let (scheme, _) = link.split_once(':').unwrap_or((old, ""));
                     let start = match scheme {
                         "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
                         "spartan" => "<span color=\"#0000ff\"> 🗡️ </span>",
@@ -435,7 +435,7 @@ impl GemView {
                                 viewer.emit_by_name::<()>("request-upload", &[&link]);
                                 gtk::Inhibit(true)
                             });
-                        },
+                        }
                         _ => {
                             buf.insert_markup(
                                 &mut iter,
@@ -455,7 +455,7 @@ impl GemView {
                                             self.wrap_text(&link, self.font_paragraph().size()),
                                         )
                                     }
-                                }
+                                },
                             );
                             iter = buf.end_iter();
                             buf.insert(&mut iter, "\n");
@@ -801,14 +801,15 @@ impl GemView {
                             segments.last().unwrap_or("download")
                         } else {
                             "download"
-                        }.to_string();
+                        }
+                        .to_string();
 
                         viewer.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
                     }
-                },
+                }
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
-                },
+                }
                 Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
@@ -840,10 +841,10 @@ impl GemView {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
                     viewer.emit_by_name::<()>("page-loaded", &[&url]);
-                },
+                }
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
-                },
+                }
                 Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
@@ -900,10 +901,10 @@ impl GemView {
             match response {
                 scheme::Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url)
-                },
+                }
                 scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
-                },
+                }
                 scheme::Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
@@ -1028,7 +1029,8 @@ impl GemView {
                     segments.last().unwrap_or("download")
                 } else {
                     "download"
-                }.to_string();
+                }
+                .to_string();
                 self.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
             }
         }
@@ -1115,13 +1117,17 @@ impl GemView {
         &self,
         f: F,
     ) -> glib::SignalHandlerId {
-        self.connect_local("request-download", true, move |values| -> Option<glib::Value> {
-            let obj = values[0].get::<Self>().unwrap();
-            let mime = values[1].get::<String>().unwrap();
-            let filename = values[2].get::<String>().unwrap();
-            f(&obj, mime, filename);
-            None
-        })
+        self.connect_local(
+            "request-download",
+            true,
+            move |values| -> Option<glib::Value> {
+                let obj = values[0].get::<Self>().unwrap();
+                let mime = values[1].get::<String>().unwrap();
+                let filename = values[2].get::<String>().unwrap();
+                f(&obj, mime, filename);
+                None
+            },
+        )
     }
 
     /// Connects to the "request-new-tab" signal, emitted when the "Open in new

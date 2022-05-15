@@ -1,6 +1,6 @@
 use {
-    std::{convert::TryFrom, path::PathBuf},
     super::Content,
+    std::{convert::TryFrom, path::PathBuf},
     url::Url,
 };
 
@@ -39,7 +39,11 @@ impl TryFrom<Url> for Content {
                             _ => mime,
                         }
                     }
-                    Ok(Content { url: None, mime, bytes })
+                    Ok(Content {
+                        url: None,
+                        mime,
+                        bytes,
+                    })
                 } else {
                     Err("Error reading file")
                 }

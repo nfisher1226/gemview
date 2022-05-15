@@ -49,8 +49,8 @@ impl TryFrom<&Vec<u8>> for Response {
         if raw.is_empty() {
             return Err(ResponseParseError::EmptyResponse);
         }
-        let lf = match raw.iter().enumerate().find(|(_,b)| **b == b'\n') {
-            Some((i,_)) => i,
+        let lf = match raw.iter().enumerate().find(|(_, b)| **b == b'\n') {
+            Some((i, _)) => i,
             None => return Err(ResponseParseError::InvalidResponseHeader),
         };
         let header: &str = match std::str::from_utf8(&raw[..lf]) {
@@ -59,7 +59,7 @@ impl TryFrom<&Vec<u8>> for Response {
         };
         let (status, meta) = match header.split_once(' ') {
             None => return Err(ResponseParseError::InvalidResponseHeader),
-            Some((s,m)) => (s, String::from(m.trim())),
+            Some((s, m)) => (s, String::from(m.trim())),
         };
         let status = match status.parse::<u8>() {
             Ok(n) => Status::try_from(n)?,
@@ -90,7 +90,7 @@ pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
         Err(e) => Err(e.into()),
         Ok(mut stream) => {
             let mut path = url.path().to_string();
-            if path.len() == 0 {
+            if path.is_empty() {
                 path.push('/');
             }
             if let Some(q) = url.query() {
@@ -127,7 +127,7 @@ pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Content, Box<dyn Error>> {
             let path = url.path().to_string();
             let path = decode(&path)?;
             let header = format!("{} {} {}", url.host_str().unwrap(), path, data.len());
-            let request = [&header.as_bytes(), data].concat();
+            let request = [header.as_bytes(), data].concat();
             stream.write_all(&request).unwrap();
             let mut bytes = vec![];
             stream.read_to_end(&mut bytes).unwrap();
@@ -166,4 +166,3 @@ mod test {
         assert_eq!(response, ResponseParseError::InvalidResponseHeader);
     }
 }
-

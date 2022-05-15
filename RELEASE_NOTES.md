@@ -7,6 +7,9 @@ Contents
 * add `connect_request_input_sensitive` method
 * use colored icons next to links to show different protocols
 * link rendering - common code moved into traits for re-use
+* add initial support for Spartan protocol
+* add `connect_request_upload` method
+* gemini::parser - add Spartan prompt line support
 
 ## 0.4.0 release
 * improved handling up "request-download" signal

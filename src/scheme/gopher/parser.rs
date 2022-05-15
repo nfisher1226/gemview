@@ -1,6 +1,6 @@
 use {
     crate::scheme::{ToLabel, ToMarkup},
-    gtk::{gdk::Cursor, glib, Label, pango::FontDescription},
+    gtk::{gdk::Cursor, glib, pango::FontDescription, Label},
     std::fmt,
 };
 
@@ -68,13 +68,7 @@ impl LineType {
 
 impl fmt::Display for Link {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "gopher://{}:{}{}",
-            &self.host,
-            &self.port,
-            &self.path,
-        )
+        write!(f, "gopher://{}:{}{}", &self.host, &self.port, &self.path,)
     }
 }
 
@@ -131,10 +125,7 @@ impl ToLabel for Link {
 
 impl ExternLink {
     pub(crate) fn new(display: String, url: String) -> Self {
-        Self {
-            display,
-            url,
-        }
+        Self { display, url }
     }
 }
 

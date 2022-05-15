@@ -1,7 +1,7 @@
 pub mod parser;
 use {
-    parser::LineType,
     super::{Content, RequestError},
+    parser::LineType,
     std::{
         error::Error,
         io::{Read, Write},
@@ -28,9 +28,8 @@ impl GopherMap for Content {
                     break;
                 }
                 match &line[0..1] {
-                    "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" |
-                    "+" | "g" | "I" | "T" | ":" | ";" | "<" | "d" | "h" |
-                    "i" | "s" => continue,
+                    "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "+" | "g" | "I" | "T"
+                    | ":" | ";" | "<" | "d" | "h" | "i" | "s" => continue,
                     _ => return false,
                 }
             }
