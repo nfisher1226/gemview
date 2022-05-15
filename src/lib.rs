@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-
 use {
     glib::{Continue, MainContext, Object, PRIORITY_DEFAULT},
     gtk::{
@@ -810,7 +809,7 @@ impl GemView {
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
                 }
-                Response::RequestInput(_) => unreachable!(),
+                _ => unreachable!(),
             }
             Continue(false)
         });
@@ -845,7 +844,7 @@ impl GemView {
                 Response::Error(err) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&err]);
                 }
-                Response::RequestInput(_) => unreachable!(),
+                _ => unreachable!(),
             }
             Continue(false)
         });
@@ -867,32 +866,13 @@ impl GemView {
                         break;
                     }
                 };
-                match response.status {
-                    spartan::Status::Redirect => {
-                        println!("Redirect with meta {}", response.meta);
-                        url.set_path(&response.meta);
-                    }
-                    spartan::Status::Success => {
-                        let mime = if response.meta.starts_with("text/gemini") {
-                            String::from("text/gemini")
-                        } else if let Some((mime, _)) = response.meta.split_once(' ') {
-                            String::from(mime)
-                        } else {
-                            response.meta
-                        };
-                        let url = Some(url.to_string());
-                        let content = scheme::Content {
-                            url,
-                            mime,
-                            bytes: response.data,
-                        };
-                        sender
-                            .send(scheme::Response::Success(content))
-                            .expect("Cannot send data");
+                let msg = response.to_message(&mut url);
+                match msg {
+                    Response::Redirect(_) => continue,
+                    _ => {
+                        sender.send(msg).expect("Cannot send message");
                         break;
                     }
-                    spartan::Status::ClientError => eprintln!("Client error"),
-                    spartan::Status::ServerError => eprint!("Server error"),
                 }
             }
         });
@@ -902,6 +882,48 @@ impl GemView {
                 scheme::Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url)
                 }
+                scheme::Response::Error(estr) => {
+                    viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
+                }
+                _ => unreachable!(),
+            }
+            Continue(false)
+        });
+    }
+
+    pub fn post_spartan(&self, url: Url, data: Vec<u8>) {
+        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+        let u = url.clone();
+        thread::spawn(move || {
+            let mut url = u;
+            loop {
+                let response = match spartan::post(&url, &data) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        let estr = format!("{:?}", e);
+                        sender
+                            .send(scheme::Response::Error(estr))
+                            .expect("Cannot send data");
+                        break;
+                    }
+                };
+                let msg = response.to_message(&mut url);
+                match msg {
+                    Response::Redirect(_) => continue,
+                    _ => {
+                        sender.send(msg).expect("Cannot send message");
+                        break;
+                    }
+                }
+            }
+        });
+        let viewer = self.clone();
+        receiver.attach(None, move |response| {
+            match response {
+                scheme::Response::Success(content) => {
+                    viewer.process_gemini_response_success(&content, &url)
+                }
+                scheme::Response::Redirect(_s) => {}
                 scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }
@@ -996,6 +1018,7 @@ impl GemView {
                 scheme::Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url);
                 }
+                scheme::Response::Redirect(_s) => {}
                 scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }

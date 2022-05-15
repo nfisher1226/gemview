@@ -34,6 +34,7 @@ pub struct Input {
 #[derive(Clone, Debug)]
 pub(crate) enum Response {
     Success(Content),
+    Redirect(String),
     RequestInput(Input),
     Error(String),
 }

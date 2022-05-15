@@ -1,7 +1,7 @@
 use super::ResponseParseError;
 
 use {
-    super::{Content, RequestError},
+    super::RequestError,
     std::{
         convert::TryFrom,
         error::Error,
@@ -73,6 +73,36 @@ impl TryFrom<&Vec<u8>> for Response {
     }
 }
 
+impl Response {
+    pub(crate) fn to_message(self, url: &mut Url) -> super::Response {
+        match self.status {
+            Status::Redirect => {
+                println!("Redirect with meta {}", self.meta);
+                url.set_path(&self.meta);
+                super::Response::Redirect(url.to_string())
+            }
+            Status::Success => {
+                let mime = if self.meta.starts_with("text/gemini") {
+                    String::from("text/gemini")
+                } else if let Some((mime, _)) = self.meta.split_once(' ') {
+                    String::from(mime)
+                } else {
+                    self.meta
+                };
+                let url = Some(url.to_string());
+                let content = super::Content {
+                    url,
+                    mime,
+                    bytes: self.data,
+                };
+                super::Response::Success(content)
+            }
+            Status::ClientError => super::Response::Error(String::from("Client Error")),
+            Status::ServerError => super::Response::Error(String::from("Client Error")),
+        }
+    }
+}
+
 pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(300)),
@@ -108,7 +138,7 @@ pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
     }
 }
 
-pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Content, Box<dyn Error>> {
+pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Response, Box<dyn Error>> {
     let host_str = match url.host_str() {
         Some(h) => format!("{}:{}", h, url.port().unwrap_or(300)),
         None => return Err(RequestError::DnsError.into()),
@@ -131,7 +161,8 @@ pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Content, Box<dyn Error>> {
             stream.write_all(&request).unwrap();
             let mut bytes = vec![];
             stream.read_to_end(&mut bytes).unwrap();
-            Ok(Content::from_bytes(bytes))
+            let response = Response::try_from(&bytes)?;
+            Ok(response)
         }
     }
 }
