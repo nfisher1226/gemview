@@ -1056,13 +1056,24 @@ impl GemView {
                 self.emit_by_name::<()>("page-loaded", &[end_url]);
             }
             _ => {
-                let filename = if let Some(segments) = url.path_segments() {
-                    segments.last().unwrap_or("download")
+                let derived = tree_magic_mini::from_u8(&content.bytes);
+                if derived.starts_with("text") {
+                    self.render_text(&String::from_utf8_lossy(&content.bytes));
+                    self.append_history(end_url);
+                    self.emit_by_name::<()>("page-loaded", &[end_url]);
+                } else if derived.starts_with("image") {
+                    self.render_image_from_bytes(&content.bytes);
+                    self.append_history(end_url);
+                    self.emit_by_name::<()>("page-loaded", &[end_url]);
                 } else {
-                    "download"
+                    let filename = if let Some(segments) = url.path_segments() {
+                        segments.last().unwrap_or("download")
+                    } else {
+                        "download"
+                    }
+                    .to_string();
+                    self.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
                 }
-                .to_string();
-                self.emit_by_name::<()>("request-download", &[&content.mime, &filename]);
             }
         }
     }
