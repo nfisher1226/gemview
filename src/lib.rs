@@ -431,8 +431,15 @@ impl GemView {
                             buf.insert(&mut iter, "\n");
                             let viewer = self.clone();
                             label.connect_activate_link(move |_, link| {
-                                viewer.set_uri(&link);
-                                viewer.emit_by_name::<()>("request-upload", &[&link]);
+                                let url = if let Some(("spartan", _)) = link.split_once(':') {
+                                    link.to_string()
+                                } else {
+                                    let mut u = viewer.uri();
+                                    u.push_str(&link);
+                                    u
+                                };
+                                viewer.set_uri(&url);
+                                viewer.emit_by_name::<()>("request-upload", &[&url]);
                                 gtk::Inhibit(true)
                             });
                         }
