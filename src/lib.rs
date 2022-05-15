@@ -405,7 +405,7 @@ impl GemView {
                     let link = link.replace('&', "&amp;");
                     match self.uri().split_once(':') {
                         Some((s, _)) if s == "spartan" => {
-                            let start = "<span color=\"#0000ff\"> 🌐  </span>";
+                            let start = "<span color=\"#0000ff\"> 🗡️  </span>";
                             let anchor = buf.create_child_anchor(&mut iter);
                             let label = gtk::builders::LabelBuilder::new()
                                 .use_markup(true)
@@ -434,9 +434,9 @@ impl GemView {
                                 let url = if let Some(("spartan", _)) = link.split_once(':') {
                                     link.to_string()
                                 } else {
-                                    let mut u = viewer.uri();
-                                    u.push_str(&link);
-                                    u
+                                    let u = viewer.uri();
+                                    let u = Url::parse(&u).unwrap();
+                                    u.join(&link).unwrap().to_string()
                                 };
                                 viewer.set_uri(&url);
                                 viewer.emit_by_name::<()>("request-upload", &[&url]);

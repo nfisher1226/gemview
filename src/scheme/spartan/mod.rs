@@ -156,7 +156,7 @@ pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Response, Box<dyn Error>> {
         Ok(mut stream) => {
             let path = url.path().to_string();
             let path = decode(&path)?;
-            let header = format!("{} {} {}", url.host_str().unwrap(), path, data.len());
+            let header = format!("{} {} {}\r\n", url.host_str().unwrap(), path, data.len());
             let request = [header.as_bytes(), data].concat();
             stream.write_all(&request).unwrap();
             let mut bytes = vec![];
