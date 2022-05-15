@@ -356,10 +356,12 @@ impl GemView {
                     let font = self.font_paragraph();
                     iter = buf.end_iter();
                     let link = link.replace('&', "&amp;");
-                    let (scheme,_) = link.split_once(':').unwrap_or(("gemini",""));
+                    let u = self.uri();
+                    let (old,_) = u.split_once(':').unwrap_or(("gemini",""));
+                    let (scheme,_) = link.split_once(':').unwrap_or((old,""));
                     let start = match scheme {
                         "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
-                        "spartan" => "<span color=\"#0000ff\"> 🌐  </span>",
+                        "spartan" => "<span color=\"#0000ff\"> 🗡️ </span>",
                         "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
                         "finger" => "<span color=\"#00ffff\"> 👉 </span>",
                         "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
@@ -614,7 +616,7 @@ impl GemView {
     fn absolute_url(&self, url: &str) -> Result<Url, Box<dyn std::error::Error>> {
         match Url::parse(url) {
             Ok(u) => match u.scheme() {
-                "gemini" | "mercury" | "data" | "gopher" | "finger" | "file" => Ok(u),
+                "gemini" | "mercury" | "data" | "gopher" | "finger" | "file" | "spartan" => Ok(u),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
                     Err(format!("unsupported-scheme: {}", s).into())
@@ -888,7 +890,8 @@ impl GemView {
                             .expect("Cannot send data");
                         break;
                     }
-                    _ => break,
+                    spartan::Status::ClientError => eprintln!("Client error"),
+                    spartan::Status::ServerError => eprint!("Server error"),
                 }
             }
         });

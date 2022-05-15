@@ -90,6 +90,9 @@ pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
         Err(e) => Err(e.into()),
         Ok(mut stream) => {
             let mut path = url.path().to_string();
+            if path.len() == 0 {
+                path.push('/');
+            }
             if let Some(q) = url.query() {
                 path.push('?');
                 path.push_str(q);
