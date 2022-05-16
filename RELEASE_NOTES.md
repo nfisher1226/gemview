@@ -10,6 +10,9 @@ Contents
 * add initial support for Spartan protocol
 * add `connect_request_upload` method
 * gemini::parser - add Spartan prompt line support
+* finish Spartan upload support
+* Gemini/Spartan - double check file mime type and attempt to handle in
+  application before falling back to downloading
 
 ## 0.4.0 release
 * improved handling up "request-download" signal
