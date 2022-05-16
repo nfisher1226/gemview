@@ -106,7 +106,7 @@ impl ToMarkup for Link {
     fn to_markup(&self, font: &FontDescription) -> String {
         format!(
             "<span color=\"#00ff00\"> 🌐  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
-            &self.to_string().replace(' ', "%20"),
+            &self.to_string().replace(' ', "%20").replace('&', "&amp;"),
             glib::markup_escape_text(&self.display)
         )
     }
@@ -131,9 +131,10 @@ impl ExternLink {
 
 impl ToMarkup for ExternLink {
     fn to_markup(&self, font: &FontDescription) -> String {
+        let url = self.url.replace('&', "&amp;");
         format!(
             "<span color=\"#ff0000\"> 🌐  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
-            &self.url,
+            &url,
             glib::markup_escape_text(&self.display)
         )
     }
