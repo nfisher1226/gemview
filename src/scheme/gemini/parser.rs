@@ -115,9 +115,10 @@ enum ParseState {
     Blockquote,
 }
 
-/// Parse gemtext into a vector of [GemtextNode]s
+#[must_use]
+/// Parse gemtext into a vector of [`GemtextNode`]s
 ///
-/// This will take a [`&str`] and return a vector of [GemtextNode]s. Because of the nature of the way
+/// This will take a [`&str`] and return a vector of [`GemtextNode`]s. Because of the nature of the way
 /// gemtext works, this parsing step cannot fail. It can only return garbage.
 ///
 /// # Example:
@@ -224,35 +225,38 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         temp1.push(c);
                     }
                 }
-                ParseState::LinkDesc => temp2.push(c),
-                ParseState::PromptDesc => temp2.push(c),
+                ParseState::LinkDesc | ParseState::PromptDesc => temp2.push(c),
                 //=====
                 //List parsing
                 //=====
                 ParseState::ListWaitForSpace => {
-                    if !c.is_whitespace() {
-                        current_parse_state = ParseState::Text;
-                    } else {
+                    if c.is_whitespace() {
                         current_parse_state = ParseState::ListItem;
+                    } else {
+                        current_parse_state = ParseState::Text;
                     }
                 }
-                ParseState::ListItem => temp1.push(c),
+                ParseState::ListItem
+                | ParseState::Heading
+                | ParseState::SubHeading
+                | ParseState::Blockquote
+                | ParseState::SubSubHeading => temp1.push(c),
                 //======
                 //Preformatted text
                 //======
                 ParseState::FirstTick => {
-                    if c != '`' {
-                        current_parse_state = ParseState::Text;
-                    } else {
+                    if c == '`' {
                         current_parse_state = ParseState::SecondTick;
+                    } else {
+                        current_parse_state = ParseState::Text;
                     }
                 }
                 ParseState::SecondTick => {
-                    if c != '`' {
-                        current_parse_state = ParseState::Text;
-                    } else {
+                    if c == '`' {
                         current_parse_state = ParseState::PreformattedTextType;
                         preformatted_text_type.clear();
+                    } else {
+                        current_parse_state = ParseState::Text;
                     }
                 }
                 ParseState::PreformattedTextType => preformatted_text_type.push(c),
@@ -268,7 +272,6 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         current_parse_state = ParseState::Heading;
                     }
                 }
-                ParseState::Heading => temp1.push(c),
                 ParseState::SubHeadingStart => {
                     if c == '#' {
                         current_parse_state = ParseState::SubSubHeadingStart;
@@ -278,7 +281,6 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         current_parse_state = ParseState::SubHeading;
                     }
                 }
-                ParseState::SubHeading => temp1.push(c),
                 ParseState::SubSubHeadingStart => {
                     if c == '#' {
                         current_parse_state = ParseState::SubSubHeading;
@@ -288,25 +290,25 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
                         current_parse_state = ParseState::SubSubHeading;
                     }
                 }
-                ParseState::SubSubHeading => temp1.push(c),
                 ParseState::BlockquoteStart => {
-                    if !c.is_whitespace() {
-                        current_parse_state = ParseState::Text;
-                    } else {
+                    if c.is_whitespace() {
                         current_parse_state = ParseState::Blockquote;
+                    } else {
+                        current_parse_state = ParseState::Text;
                     }
                 }
-                ParseState::Blockquote => temp1.push(c),
             }
         }
         // Clean up any parse state we are in
         match current_parse_state {
             ParseState::Text => nodes.push(GemtextNode::Text(line.to_string())),
 
-            ParseState::SecondLinkChar => nodes.push(GemtextNode::Text("=".to_string())),
-            ParseState::SecondPromptChar => nodes.push(GemtextNode::Text("=".to_string())),
-            ParseState::LinkLink => nodes.push(GemtextNode::Link(temp1, None)),
-            ParseState::PromptLink => nodes.push(GemtextNode::Link(temp1, None)),
+            ParseState::SecondLinkChar | ParseState::SecondPromptChar => {
+                nodes.push(GemtextNode::Text("=".to_string()))
+            }
+            ParseState::LinkLink | ParseState::PromptLink => {
+                nodes.push(GemtextNode::Link(temp1, None))
+            }
             ParseState::LinkDesc => {
                 if temp2.is_empty() {
                     nodes.push(GemtextNode::Link(temp1, None));

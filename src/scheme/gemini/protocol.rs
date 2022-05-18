@@ -137,7 +137,7 @@ impl From<StatusCode> for u8 {
 ///
 /// # Creating a Response Struct
 /// There are a few ways you can construct a Response struct. You can create it from its raw parts
-/// (since all its fields are public), or you can create it using the TryFrom implementation (see
+/// (since all its fields are public), or you can create it using the `TryFrom` implementation (see
 /// the [`TryFrom`](#method.try_from) implementation).
 pub struct Response {
     /// The status code of the response header.

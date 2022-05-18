@@ -74,7 +74,7 @@ impl TryFrom<&Vec<u8>> for Response {
 }
 
 impl Response {
-    pub(crate) fn to_message(self, url: &mut Url) -> super::Response {
+    pub(crate) fn into_message(self, url: &mut Url) -> super::Response {
         match self.status {
             Status::Redirect => {
                 println!("Redirect with meta {}", self.meta);
@@ -98,7 +98,7 @@ impl Response {
                 super::Response::Success(content)
             }
             Status::ClientError => super::Response::Error(String::from("Client Error")),
-            Status::ServerError => super::Response::Error(String::from("Client Error")),
+            Status::ServerError => super::Response::Error(String::from("Server Error")),
         }
     }
 }

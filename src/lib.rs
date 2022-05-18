@@ -1,3 +1,4 @@
+#![warn(clippy::all, clippy::pedantic)]
 #![doc = include_str!("../README.md")]
 use {
     glib::{Continue, MainContext, Object, PRIORITY_DEFAULT},
@@ -80,6 +81,7 @@ impl GemView {
         self.insert_action_group("viewer", Some(&group));
     }
 
+    #[must_use]
     /// Returns the current uri
     pub fn uri(&self) -> String {
         self.imp().history.borrow().uri.clone()
@@ -95,6 +97,7 @@ impl GemView {
         self.imp().history.borrow_mut().previous()
     }
 
+    #[must_use]
     /// Returns `true` if there are any items in the `back` history list
     pub fn has_previous(&self) -> bool {
         self.imp().history.borrow().has_previous()
@@ -113,6 +116,7 @@ impl GemView {
         imp.history.borrow_mut().next()
     }
 
+    #[must_use]
     /// Returns `true` if there are any items in the `forward` history list
     pub fn has_next(&self) -> bool {
         self.imp().history.borrow().has_next()
@@ -135,17 +139,19 @@ impl GemView {
         }
     }
 
-    /// Get the MimeType of the current file
+    #[must_use]
+    /// Get the `MimeType` of the current file
     pub fn buffer_mime(&self) -> String {
         self.imp().buffer.borrow().mime.clone()
     }
 
-    /// Set the MimeType of the current file. Normally this function will not
+    /// Set the `MimeType` of the current file. Normally this function will not
     /// need to be called directly.
     pub fn set_buffer_mime(&self, mime: &str) {
         self.imp().buffer.borrow_mut().mime = mime.to_string();
     }
 
+    #[must_use]
     /// Get the contents of the buffer. Can be used to save the current page
     /// source.
     pub fn buffer_content(&self) -> Vec<u8> {
@@ -158,6 +164,7 @@ impl GemView {
         self.imp().buffer.borrow_mut().content = content.to_vec();
     }
 
+    #[must_use]
     /// Returns the font used to render "normal" elements
     pub fn font_paragraph(&self) -> FontDescription {
         self.imp().font_paragraph.borrow().clone()
@@ -168,6 +175,7 @@ impl GemView {
         *self.imp().font_paragraph.borrow_mut() = font;
     }
 
+    #[must_use]
     /// Returns the font used to render "preformatted" elements
     pub fn font_pre(&self) -> FontDescription {
         self.imp().font_pre.borrow().clone()
@@ -178,6 +186,7 @@ impl GemView {
         *self.imp().font_pre.borrow_mut() = font;
     }
 
+    #[must_use]
     /// Returns the font used to render "blockte" elements
     pub fn font_quote(&self) -> FontDescription {
         self.imp().font_quote.borrow().clone()
@@ -188,6 +197,7 @@ impl GemView {
         *self.imp().font_quote.borrow_mut() = font;
     }
 
+    #[must_use]
     /// Returns the font used to render H1 heading elements
     pub fn font_h1(&self) -> FontDescription {
         self.imp().font_h1.borrow().clone()
@@ -198,6 +208,7 @@ impl GemView {
         *self.imp().font_h1.borrow_mut() = font;
     }
 
+    #[must_use]
     /// Returns the font used to render H2 heading elements
     pub fn font_h2(&self) -> FontDescription {
         self.imp().font_h2.borrow().clone()
@@ -208,6 +219,7 @@ impl GemView {
         *self.imp().font_h2.borrow_mut() = font;
     }
 
+    #[must_use]
     /// Returns the font used to render H3 heading elements
     pub fn font_h3(&self) -> FontDescription {
         self.imp().font_h3.borrow().clone()
@@ -436,7 +448,7 @@ impl GemView {
                                 } else {
                                     let u = viewer.uri();
                                     let u = Url::parse(&u).unwrap();
-                                    u.join(&link).unwrap().to_string()
+                                    u.join(link).unwrap().to_string()
                                 };
                                 viewer.set_uri(&url);
                                 viewer.emit_by_name::<()>("request-upload", &[&url]);
@@ -538,7 +550,7 @@ impl GemView {
         }
     }
 
-    /// Renders a GopherMap
+    /// Renders a `GopherMap`
     fn render_gopher(&self, content: &scheme::Content) {
         self.clear();
         let buf = self.buffer();
@@ -659,7 +671,7 @@ impl GemView {
             "data" => self.load_data(&url),
             "gemini" => self.load_gemini(url),
             "gopher" => self.load_gopher(url),
-            "file" => self.load_file(url),
+            "file" => self.load_file(&url),
             "finger" => self.load_finger(url),
             "spartan" => self.load_spartan(url),
             _ => {}
@@ -718,19 +730,19 @@ impl GemView {
                 }
                 _ => unreachable!(),
             },
-            _ => self
+            MimeType::Unknown => self
                 .emit_by_name::<()>("page-load-failed", &[&"unrecognized data type".to_string()]),
         }
     }
 
-    fn load_file(&self, url: Url) {
+    fn load_file(&self, url: &Url) {
         let path = PathBuf::from(url.path());
         if let Some(mime) = tree_magic_mini::from_filepath(&path) {
             if !mime.starts_with("text/")
                 && !mime.starts_with("image/")
                 && mime != "inode/directory"
             {
-                if let Err(e) = mime_open::open(&url.to_string()) {
+                if let Err(e) = mime_open::open(url.as_ref()) {
                     eprintln!("{}", e);
                 }
                 self.emit_by_name::<()>("page-loaded", &[&url.to_string()]);
@@ -874,21 +886,19 @@ impl GemView {
                         break;
                     }
                 };
-                let msg = response.to_message(&mut url);
-                match msg {
-                    Response::Redirect(_) => continue,
-                    _ => {
-                        sender.send(msg).expect("Cannot send message");
-                        break;
-                    }
-                }
+                let msg = response.into_message(&mut url);
+                if let Response::Redirect(_) = msg {
+                    continue;
+                };
+                sender.send(msg).expect("Cannot send message");
+                break;
             }
         });
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
                 scheme::Response::Success(content) => {
-                    viewer.process_gemini_response_success(&content, &url)
+                    viewer.process_gemini_response_success(&content, &url);
                 }
                 scheme::Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
@@ -915,21 +925,19 @@ impl GemView {
                         break;
                     }
                 };
-                let msg = response.to_message(&mut url);
-                match msg {
-                    Response::Redirect(_) => continue,
-                    _ => {
-                        sender.send(msg).expect("Cannot send message");
-                        break;
-                    }
-                }
+                let msg = response.into_message(&mut url);
+                if let Response::Redirect(_) = msg {
+                    continue;
+                };
+                sender.send(msg).expect("Cannot send message");
+                break;
             }
         });
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
                 scheme::Response::Success(content) => {
-                    viewer.process_gemini_response_success(&content, &url)
+                    viewer.process_gemini_response_success(&content, &url);
                 }
                 scheme::Response::Redirect(_s) => {}
                 scheme::Response::Error(estr) => {

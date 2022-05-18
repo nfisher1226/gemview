@@ -34,8 +34,8 @@ impl TryFrom<Url> for Content {
                 if let Ok(bytes) = std::fs::read(&path) {
                     let mut mime = tree_magic_mini::from_u8(&bytes).to_string();
                     if mime.starts_with("text/") {
-                        mime = match &path.extension().map(|x| x.to_str()) {
-                            Some(Some("gmi")) | Some(Some("gemini")) => String::from("text/gemini"),
+                        mime = match &path.extension().map(std::ffi::OsStr::to_str) {
+                            Some(Some("gmi" | "gemini")) => String::from("text/gemini"),
                             _ => mime,
                         }
                     }

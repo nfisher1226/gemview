@@ -3,7 +3,7 @@
 //! `rustls`.
 //!
 
-use super::*;
+use super::protocol;
 use crate::scheme::RequestError;
 use native_tls::TlsConnector;
 use url::Url;
@@ -131,7 +131,7 @@ fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, 
     Ok(tcp_stream)
 }
 
-/// Use a stream given (std::io::Write) to write a request
+/// Use a stream given `std::io::Write` to write a request
 fn use_stream_do_request(req: &str, stream: &mut dyn std::io::Write) -> Result<(), RequestError> {
     match stream.write(req.as_bytes()) {
         Err(e) => Err(RequestError::IoError(e)),
@@ -139,7 +139,7 @@ fn use_stream_do_request(req: &str, stream: &mut dyn std::io::Write) -> Result<(
     }
 }
 
-/// Use a stream (std::io::Read) to read a response and parse that response
+/// Use a stream `std::io::Read` to read a response and parse that response
 fn use_stream_get_resp(stream: &mut dyn std::io::Read) -> Result<protocol::Response, RequestError> {
     let mut buffer: Vec<u8> = Vec::new();
     if let Err(e) = stream.read_to_end(&mut buffer) {
@@ -230,7 +230,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 /// assert_eq!(response.status, StatusCode::Success(0));
 /// # Ok(())
 /// # }
-
+/// ```
 pub fn make_request(url: &Url) -> Result<protocol::Response, RequestError> {
     // Get the scheme, and see what type of request we're making
     match url.scheme() {
