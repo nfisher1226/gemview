@@ -1,5 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::missing_panics_doc)]
 #![doc = include_str!("../README.md")]
+
 use {
     glib::{Continue, MainContext, Object, PRIORITY_DEFAULT},
     gtk::{
@@ -10,7 +12,7 @@ use {
         prelude::*,
         subclass::prelude::*,
     },
-    std::{path::PathBuf, thread},
+    std::{borrow::Cow, path::PathBuf, thread},
     textwrap::fill,
     url::Url,
 };
@@ -39,10 +41,12 @@ impl Default for GemView {
 }
 
 impl GemView {
+    #[allow(clippy::must_use_candidate)]
     pub fn new() -> Self {
         Object::new(&[]).expect("Failed to create `GemView`.")
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn with_label(label: &str) -> Self {
         Object::new(&[("label", &label)]).expect("Failed to create `GemView`.")
     }
@@ -289,198 +293,30 @@ impl GemView {
     pub fn render_gmi(&self, data: &str) {
         self.clear();
         let buf = self.buffer();
-        let mut iter;
+        let mut iter = buf.end_iter();
         let nodes = gemini::parser::parse_gemtext(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
-                    let font = self.font_paragraph();
-                    iter = buf.end_iter();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_paragraph().size()),
-                        ),
-                    );
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_text_block(&buf, &mut iter, &text, &self.font_paragraph());
                 }
                 GemtextNode::Heading(text) => {
-                    let font = self.font_h1();
-                    iter = buf.end_iter();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_h1().size()),
-                        ),
-                    );
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h1());
                 }
                 GemtextNode::SubHeading(text) => {
-                    let font = self.font_h2();
-                    iter = buf.end_iter();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_h2().size()),
-                        ),
-                    );
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h2());
                 }
                 GemtextNode::SubSubHeading(text) => {
-                    let font = self.font_h3();
-                    iter = buf.end_iter();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_h3().size()),
-                        ),
-                    );
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h3());
                 }
                 GemtextNode::ListItem(text) => {
-                    let font = self.font_paragraph();
-                    iter = buf.end_iter();
-                    buf.insert_markup(
-                        &mut iter,
-                        &format!(
-                            "<span font=\"{}\">  • {}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_paragraph().size()),
-                        ),
-                    );
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_list_item(&buf, &mut iter, &text);
                 }
                 GemtextNode::Link(link, text) => {
-                    let font = self.font_paragraph();
-                    iter = buf.end_iter();
-                    let link = link.replace('&', "&amp;");
-                    let u = self.uri();
-                    let (old, _) = u.split_once(':').unwrap_or(("gemini", ""));
-                    let (scheme, _) = link.split_once(':').unwrap_or((old, ""));
-                    let start = match scheme {
-                        "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
-                        "spartan" => "<span color=\"#0000ff\"> 🗡️ </span>",
-                        "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
-                        "finger" => "<span color=\"#00ffff\"> 👉 </span>",
-                        "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
-                        "http" | "https" => "<span color=\"#ff0000\"> 🌐  </span>",
-                        "mailto" => "<span color=\"#ffff00\"> ✉️ </span>",
-                        "file" => "<span color=\"#0000ff\"> 🗄️ </span>",
-                        _ => "<span color=\"#ffff00\"> 🌐  </span>",
-                    };
-                    let anchor = buf.create_child_anchor(&mut iter);
-                    let label = gtk::builders::LabelBuilder::new()
-                        .use_markup(true)
-                        .tooltip_text(&if link.len() < 80 {
-                            link.clone()
-                        } else {
-                            format!("{}...", &link[..80])
-                        })
-                        .label(&format!(
-                            "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                            start,
-                            font.to_str(),
-                            &link,
-                            match text {
-                                Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
-                                None => self.wrap_text(&link, self.font_paragraph().size()),
-                            },
-                        ))
-                        .build();
-                    label.set_cursor_from_name(Some("pointer"));
-                    label.set_extra_menu(Some(&Self::context_menu(&link)));
-                    self.add_child_at_anchor(&label, &anchor);
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
-                    let viewer = self.clone();
-                    label.connect_activate_link(move |_, link| {
-                        viewer.visit(link);
-                        gtk::Inhibit(true)
-                    });
+                    self.insert_link(&buf, &mut iter, &link, text);
                 }
                 GemtextNode::Prompt(link, text) => {
-                    let font = self.font_paragraph();
-                    iter = buf.end_iter();
-                    let link = link.replace('&', "&amp;");
-                    match self.uri().split_once(':') {
-                        Some((s, _)) if s == "spartan" => {
-                            let start = "<span color=\"#0000ff\"> 🗡️  </span>";
-                            let anchor = buf.create_child_anchor(&mut iter);
-                            let label = gtk::builders::LabelBuilder::new()
-                                .use_markup(true)
-                                .tooltip_text(&if link.len() < 80 {
-                                    link.clone()
-                                } else {
-                                    format!("{}...", &link[..80])
-                                })
-                                .label(&format!(
-                                    "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                                    start,
-                                    font.to_str(),
-                                    &link,
-                                    match text {
-                                        Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
-                                        None => self.wrap_text(&link, self.font_paragraph().size()),
-                                    },
-                                ))
-                                .build();
-                            label.set_cursor_from_name(Some("pointer"));
-                            self.add_child_at_anchor(&label, &anchor);
-                            iter = buf.end_iter();
-                            buf.insert(&mut iter, "\n");
-                            let viewer = self.clone();
-                            label.connect_activate_link(move |_, link| {
-                                let url = if let Some(("spartan", _)) = link.split_once(':') {
-                                    link.to_string()
-                                } else {
-                                    let u = viewer.uri();
-                                    let u = Url::parse(&u).unwrap();
-                                    u.join(link).unwrap().to_string()
-                                };
-                                viewer.set_uri(&url);
-                                viewer.emit_by_name::<()>("request-upload", &[&url]);
-                                gtk::Inhibit(true)
-                            });
-                        }
-                        _ => {
-                            buf.insert_markup(
-                                &mut iter,
-                                &match text {
-                                    Some(t) => {
-                                        format!(
-                                            "<span font=\"{}\">{} {}</span>",
-                                            font.to_str(),
-                                            self.wrap_text(&link, self.font_paragraph().size()),
-                                            self.wrap_text(&t, self.font_paragraph().size()),
-                                        )
-                                    }
-                                    None => {
-                                        format!(
-                                            "<span font=\"{}\">{}</span>",
-                                            font.to_str(),
-                                            self.wrap_text(&link, self.font_paragraph().size()),
-                                        )
-                                    }
-                                },
-                            );
-                            iter = buf.end_iter();
-                            buf.insert(&mut iter, "\n");
-                            continue;
-                        }
-                    }
+                    self.insert_prompt_link(&buf, &mut iter, &link, text);
                 }
                 GemtextNode::Blockquote(text) => {
                     let font = self.font_quote();
@@ -546,6 +382,157 @@ impl GemView {
                     let mut iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }
+            }
+        }
+    }
+
+    fn insert_text_block(
+        &self,
+        buf: &gtk::TextBuffer,
+        iter: &mut gtk::TextIter,
+        text: &str,
+        font: &FontDescription,
+    ) {
+        *iter = buf.end_iter();
+        buf.insert_markup(
+            iter,
+            &format!(
+                "<span font=\"{}\">{}</span>",
+                font.to_str(),
+                self.wrap_text(text, font.size()),
+            ),
+        );
+        *iter = buf.end_iter();
+        buf.insert(iter, "\n");
+    }
+
+    fn insert_list_item(&self, buf: &gtk::TextBuffer, iter: &mut gtk::TextIter, text: &str) {
+        let font = self.font_paragraph();
+        *iter = buf.end_iter();
+        buf.insert_markup(
+            iter,
+            &format!(
+                "<span font=\"{}\">  • {}</span>",
+                font.to_str(),
+                self.wrap_text(text, self.font_paragraph().size()),
+            ),
+        );
+        *iter = buf.end_iter();
+        buf.insert(iter, "\n");
+    }
+
+    fn insert_link(
+        &self,
+        buf: &gtk::TextBuffer,
+        iter: &mut gtk::TextIter,
+        link: &str,
+        text: Option<String>,
+    ) {
+        let font = self.font_paragraph();
+        *iter = buf.end_iter();
+        let link = link.replace('&', "&amp;");
+        let u = self.uri();
+        let (old, _) = u.split_once(':').unwrap_or(("gemini", ""));
+        let (scheme, _) = link.split_once(':').unwrap_or((old, ""));
+        let start = match scheme {
+            "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
+            "spartan" => "<span color=\"#0000ff\"> 🗡️ </span>",
+            "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
+            "finger" => "<span color=\"#00ffff\"> 👉 </span>",
+            "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
+            "http" | "https" => "<span color=\"#ff0000\"> 🌐  </span>",
+            "mailto" => "<span color=\"#ffff00\"> ✉️ </span>",
+            "file" => "<span color=\"#0000ff\"> 🗄️ </span>",
+            _ => "<span color=\"#ffff00\"> 🌐  </span>",
+        };
+        let anchor = buf.create_child_anchor(iter);
+        let label = gtk::builders::LabelBuilder::new()
+            .use_markup(true)
+            .tooltip_text(&if link.len() < 80 {
+                link.to_string()
+            } else {
+                format!("{}...", &link[..80])
+            })
+            .label(&format!(
+                "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                start,
+                font.to_str(),
+                link,
+                match text {
+                    Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
+                    None => self.wrap_text(&link, self.font_paragraph().size()),
+                },
+            ))
+            .build();
+        label.set_cursor_from_name(Some("pointer"));
+        label.set_extra_menu(Some(&Self::context_menu(&link)));
+        self.add_child_at_anchor(&label, &anchor);
+        *iter = buf.end_iter();
+        buf.insert(iter, "\n");
+        let viewer = self.clone();
+        label.connect_activate_link(move |_, link| {
+            viewer.visit(link);
+            gtk::Inhibit(true)
+        });
+    }
+
+    fn insert_prompt_link(
+        &self,
+        buf: &gtk::TextBuffer,
+        iter: &mut gtk::TextIter,
+        link: &str,
+        text: Option<String>,
+    ) {
+        match self.uri().split_once(':') {
+            Some((s, _)) if s == "spartan" => {
+                let font = self.font_paragraph();
+                *iter = buf.end_iter();
+                let link = link.replace('&', "&amp;");
+                let start = "<span color=\"#0000ff\"> 🗡️  </span>";
+                let anchor = buf.create_child_anchor(iter);
+                let label = gtk::builders::LabelBuilder::new()
+                    .use_markup(true)
+                    .label(&format!(
+                        "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                        start,
+                        font.to_str(),
+                        &link,
+                        match text {
+                            Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
+                            None => self.wrap_text(&link, self.font_paragraph().size()),
+                        },
+                    ))
+                    .tooltip_text(&if link.len() < 80 {
+                        link
+                    } else {
+                        format!("{}...", &link[..80])
+                    })
+                    .build();
+                label.set_cursor_from_name(Some("pointer"));
+                self.add_child_at_anchor(&label, &anchor);
+                *iter = buf.end_iter();
+                buf.insert(iter, "\n");
+                let viewer = self.clone();
+                label.connect_activate_link(move |_, link| {
+                    let url = if let Some(("spartan", _)) = link.split_once(':') {
+                        link.to_string()
+                    } else {
+                        let u = viewer.uri();
+                        let u = Url::parse(&u).unwrap();
+                        u.join(link).unwrap().to_string()
+                    };
+                    viewer.set_uri(&url);
+                    viewer.emit_by_name::<()>("request-upload", &[&url]);
+                    gtk::Inhibit(true)
+                });
+            }
+            _ => {
+                let text = if let Some(t) = text {
+                    Cow::from(format!("=: {} {}", link, t))
+                } else {
+                    Cow::from(link)
+                };
+                self.insert_text_block(buf, iter, &text, &self.font_paragraph());
             }
         }
     }

@@ -304,10 +304,10 @@ pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
             ParseState::Text => nodes.push(GemtextNode::Text(line.to_string())),
 
             ParseState::SecondLinkChar | ParseState::SecondPromptChar => {
-                nodes.push(GemtextNode::Text("=".to_string()))
+                nodes.push(GemtextNode::Text("=".to_string()));
             }
             ParseState::LinkLink | ParseState::PromptLink => {
-                nodes.push(GemtextNode::Link(temp1, None))
+                nodes.push(GemtextNode::Link(temp1, None));
             }
             ParseState::LinkDesc => {
                 if temp2.is_empty() {
