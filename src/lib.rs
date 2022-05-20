@@ -234,10 +234,16 @@ impl GemView {
         *self.imp().font_h3.borrow_mut() = font;
     }
 
+    fn get_iter(&self) -> (gtk::TextBuffer, gtk::TextIter) {
+        let buf = self.buffer();
+        let iter = buf.end_iter();
+        (buf, iter)
+    }
+
     /// Renders plain text
     pub fn render_text(&self, data: &str) {
         self.clear();
-        let buf = self.buffer();
+        let (buf, mut iter) = self.get_iter();
         let prebox = gtk::builders::BoxBuilder::new()
             .orientation(gtk::Orientation::Vertical)
             .hexpand(true)
@@ -248,7 +254,6 @@ impl GemView {
             .margin_end(8)
             .css_classes(vec!["preformatted".to_string()])
             .build();
-        let mut iter = buf.end_iter();
         let anchor = buf.create_child_anchor(&mut iter);
         self.add_child_at_anchor(&prebox, &anchor);
         let text = glib::markup_escape_text(data);
@@ -278,8 +283,7 @@ impl GemView {
     /// Renders a [`gtk::gdk_pixbuf::Pixbuf`]
     fn render_pixbuf(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
         self.clear();
-        let buf = self.buffer();
-        let mut iter = buf.end_iter();
+        let (buf, mut iter) = self.get_iter();
         let anchor = buf.create_child_anchor(&mut iter);
         let image = gtk::Image::from_pixbuf(Some(pixbuf));
         image.set_hexpand(true);
@@ -292,35 +296,33 @@ impl GemView {
     /// Renders the given `&str` as a gemtext document
     pub fn render_gmi(&self, data: &str) {
         self.clear();
-        let buf = self.buffer();
-        let mut iter = buf.end_iter();
         let nodes = gemini::parser::parse_gemtext(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
-                    self.insert_text_block(&buf, &mut iter, &text, &self.font_paragraph());
+                    self.insert_text_block(text, &self.font_paragraph());
                 }
-                GemtextNode::Heading(text) => {
-                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h1());
+                GemtextNode::H1(text) => {
+                    self.insert_text_block(text, &self.font_h1());
                 }
-                GemtextNode::SubHeading(text) => {
-                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h2());
+                GemtextNode::H2(text) => {
+                    self.insert_text_block(text, &self.font_h2());
                 }
-                GemtextNode::SubSubHeading(text) => {
-                    self.insert_text_block(&buf, &mut iter, &text, &self.font_h3());
+                GemtextNode::H3(text) => {
+                    self.insert_text_block(text, &self.font_h3());
                 }
                 GemtextNode::ListItem(text) => {
-                    self.insert_list_item(&buf, &mut iter, &text);
+                    self.insert_list_item(text);
                 }
-                GemtextNode::Link(link, text) => {
-                    self.insert_link(&buf, &mut iter, &link, text);
+                GemtextNode::Link(link) => {
+                    self.insert_link(link.url, link.display);
                 }
-                GemtextNode::Prompt(link, text) => {
-                    self.insert_prompt_link(&buf, &mut iter, &link, text);
+                GemtextNode::Prompt(link) => {
+                    self.insert_prompt_link(link.url, link.display);
                 }
                 GemtextNode::Blockquote(text) => {
                     let font = self.font_quote();
-                    iter = buf.end_iter();
+                    let (buf, mut iter) = self.get_iter();
                     let anchor = buf.create_child_anchor(&mut iter);
                     let quotebox = gtk::builders::BoxBuilder::new()
                         .orientation(gtk::Orientation::Vertical)
@@ -358,7 +360,7 @@ impl GemView {
                         .margin_end(8)
                         .css_classes(vec!["preformatted".to_string()])
                         .build();
-                    iter = buf.end_iter();
+                    let (buf, mut iter) = self.get_iter();
                     let anchor = buf.create_child_anchor(&mut iter);
                     self.add_child_at_anchor(&prebox, &anchor);
                     let font = self.font_pre();
@@ -378,59 +380,40 @@ impl GemView {
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }
-                GemtextNode::EmptyLine => {
-                    let mut iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
-                }
             }
         }
     }
 
-    fn insert_text_block(
-        &self,
-        buf: &gtk::TextBuffer,
-        iter: &mut gtk::TextIter,
-        text: &str,
-        font: &FontDescription,
-    ) {
-        *iter = buf.end_iter();
+    fn insert_text_block(&self, text: &str, font: &FontDescription) {
+        let (buf, mut iter) = self.get_iter();
         buf.insert_markup(
-            iter,
+            &mut iter,
             &format!(
                 "<span font=\"{}\">{}</span>",
                 font.to_str(),
                 self.wrap_text(text, font.size()),
             ),
         );
-        *iter = buf.end_iter();
-        buf.insert(iter, "\n");
+        iter = buf.end_iter();
+        buf.insert(&mut iter, "\n");
     }
 
-    fn insert_list_item(&self, buf: &gtk::TextBuffer, iter: &mut gtk::TextIter, text: &str) {
+    fn insert_list_item(&self, text: &str) {
+        let (buf, mut iter) = self.get_iter();
         let font = self.font_paragraph();
-        *iter = buf.end_iter();
         buf.insert_markup(
-            iter,
+            &mut iter,
             &format!(
                 "<span font=\"{}\">  • {}</span>",
                 font.to_str(),
                 self.wrap_text(text, self.font_paragraph().size()),
             ),
         );
-        *iter = buf.end_iter();
-        buf.insert(iter, "\n");
+        iter = buf.end_iter();
+        buf.insert(&mut iter, "\n");
     }
 
-    fn insert_link(
-        &self,
-        buf: &gtk::TextBuffer,
-        iter: &mut gtk::TextIter,
-        link: &str,
-        text: Option<String>,
-    ) {
-        let font = self.font_paragraph();
-        *iter = buf.end_iter();
-        let link = link.replace('&', "&amp;");
+    fn insert_link(&self, link: &str, text: Option<String>) {
         let u = self.uri();
         let (old, _) = u.split_once(':').unwrap_or(("gemini", ""));
         let (scheme, _) = link.split_once(':').unwrap_or((old, ""));
@@ -445,30 +428,8 @@ impl GemView {
             "file" => "<span color=\"#0000ff\"> 🗄️ </span>",
             _ => "<span color=\"#ffff00\"> 🌐  </span>",
         };
-        let anchor = buf.create_child_anchor(iter);
-        let label = gtk::builders::LabelBuilder::new()
-            .use_markup(true)
-            .tooltip_text(&if link.len() < 80 {
-                link.to_string()
-            } else {
-                format!("{}...", &link[..80])
-            })
-            .label(&format!(
-                "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                start,
-                font.to_str(),
-                link,
-                match text {
-                    Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
-                    None => self.wrap_text(&link, self.font_paragraph().size()),
-                },
-            ))
-            .build();
-        label.set_cursor_from_name(Some("pointer"));
-        label.set_extra_menu(Some(&Self::context_menu(&link)));
-        self.add_child_at_anchor(&label, &anchor);
-        *iter = buf.end_iter();
-        buf.insert(iter, "\n");
+        let label = self.insert_gmi_link_markup_label(start, link, text);
+        label.set_extra_menu(Some(&Self::context_menu(link)));
         let viewer = self.clone();
         label.connect_activate_link(move |_, link| {
             viewer.visit(link);
@@ -476,42 +437,11 @@ impl GemView {
         });
     }
 
-    fn insert_prompt_link(
-        &self,
-        buf: &gtk::TextBuffer,
-        iter: &mut gtk::TextIter,
-        link: &str,
-        text: Option<String>,
-    ) {
+    fn insert_prompt_link(&self, link: &str, text: Option<String>) {
         match self.uri().split_once(':') {
             Some((s, _)) if s == "spartan" => {
-                let font = self.font_paragraph();
-                *iter = buf.end_iter();
-                let link = link.replace('&', "&amp;");
                 let start = "<span color=\"#0000ff\"> 🗡️  </span>";
-                let anchor = buf.create_child_anchor(iter);
-                let label = gtk::builders::LabelBuilder::new()
-                    .use_markup(true)
-                    .label(&format!(
-                        "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
-                        start,
-                        font.to_str(),
-                        &link,
-                        match text {
-                            Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
-                            None => self.wrap_text(&link, self.font_paragraph().size()),
-                        },
-                    ))
-                    .tooltip_text(&if link.len() < 80 {
-                        link
-                    } else {
-                        format!("{}...", &link[..80])
-                    })
-                    .build();
-                label.set_cursor_from_name(Some("pointer"));
-                self.add_child_at_anchor(&label, &anchor);
-                *iter = buf.end_iter();
-                buf.insert(iter, "\n");
+                let label = self.insert_gmi_link_markup_label(start, link, text);
                 let viewer = self.clone();
                 label.connect_activate_link(move |_, link| {
                     let url = if let Some(("spartan", _)) = link.split_once(':') {
@@ -532,9 +462,43 @@ impl GemView {
                 } else {
                     Cow::from(link)
                 };
-                self.insert_text_block(buf, iter, &text, &self.font_paragraph());
+                self.insert_text_block(&text, &self.font_paragraph());
             }
         }
+    }
+
+    fn insert_gmi_link_markup_label(
+        &self,
+        start: &str,
+        link: &str,
+        text: Option<String>,
+    ) -> gtk::Label {
+        let (buf, mut iter) = self.get_iter();
+        let link = link.replace('&', "&amp;");
+        let anchor = buf.create_child_anchor(&mut iter);
+        let label = gtk::builders::LabelBuilder::new()
+            .use_markup(true)
+            .label(&format!(
+                "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
+                start,
+                self.font_paragraph().to_str(),
+                &link,
+                match text {
+                    Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
+                    None => self.wrap_text(&link, self.font_paragraph().size()),
+                },
+            ))
+            .tooltip_text(&if link.len() < 80 {
+                link
+            } else {
+                format!("{}...", &link[..80])
+            })
+            .build();
+        label.set_cursor_from_name(Some("pointer"));
+        self.add_child_at_anchor(&label, &anchor);
+        iter = buf.end_iter();
+        buf.insert(&mut iter, "\n");
+        label
     }
 
     /// Renders a `GopherMap`
@@ -556,12 +520,9 @@ impl GemView {
                     );
                 }
                 gopher::parser::LineType::Link(link) => {
-                    let anchor = buf.create_child_anchor(&mut iter);
                     let label = link.to_label(&self.font_pre());
+                    self.insert_gopher_link(&label);
                     label.set_extra_menu(Some(&Self::context_menu(&link.to_string())));
-                    self.add_child_at_anchor(&label, &anchor);
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
                         viewer.visit(link);
@@ -569,11 +530,8 @@ impl GemView {
                     });
                 }
                 gopher::parser::LineType::Query(link) => {
-                    let anchor = buf.create_child_anchor(&mut iter);
                     let label = link.to_label(&self.font_pre());
-                    self.add_child_at_anchor(&label, &anchor);
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
+                    self.insert_gopher_link(&label);
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
                         viewer.emit_by_name::<()>(
@@ -584,12 +542,9 @@ impl GemView {
                     });
                 }
                 gopher::parser::LineType::Http(link) => {
-                    let anchor = buf.create_child_anchor(&mut iter);
                     let label = link.to_label(&self.font_pre());
+                    self.insert_gopher_link(&label);
                     label.set_extra_menu(Some(&Self::context_menu(&link.url)));
-                    self.add_child_at_anchor(&label, &anchor);
-                    iter = buf.end_iter();
-                    buf.insert(&mut iter, "\n");
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
                         viewer.visit(link);
@@ -598,6 +553,14 @@ impl GemView {
                 }
             }
         }
+    }
+
+    fn insert_gopher_link(&self, label: &gtk::Label) {
+        let (buf, mut iter) = self.get_iter();
+        let anchor = buf.create_child_anchor(&mut iter);
+        self.add_child_at_anchor(label, &anchor);
+        iter = buf.end_iter();
+        buf.insert(&mut iter, "\n");
     }
 
     fn context_menu(link: &str) -> Menu {
@@ -677,22 +640,22 @@ impl GemView {
         match data.mime() {
             MimeType::TextPlain => match data.decode() {
                 Ok(Data::Text(payload)) => {
-                    self.render_text(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime("text/plain");
                     self.set_buffer_content(payload.as_bytes());
+                    self.render_text(&payload);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
             },
             MimeType::TextGemini => match data.decode() {
                 Ok(Data::Text(payload)) => {
-                    self.render_gmi(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime("text/gemini");
                     self.set_buffer_content(payload.as_bytes());
+                    self.render_gmi(&payload);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -702,7 +665,6 @@ impl GemView {
             | MimeType::ImageSvg
             | MimeType::ImageOther => match data.decode() {
                 Ok(Data::Bytes(payload)) => {
-                    self.render_image_from_bytes(&payload);
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime(match data.mime() {
@@ -713,6 +675,7 @@ impl GemView {
                         _ => unreachable!(),
                     });
                     self.set_buffer_content(&payload);
+                    self.render_image_from_bytes(&payload);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => unreachable!(),
@@ -739,27 +702,27 @@ impl GemView {
         if let Ok(content) = Content::try_from(url.clone()) {
             match content.mime {
                 s if s.starts_with("text/gemini") => {
-                    self.render_gmi(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime(&s);
                     self.set_buffer_content(&content.bytes);
+                    self.render_gmi(&String::from_utf8_lossy(&content.bytes));
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 s if s.starts_with("text/") => {
-                    self.render_text(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime(&s);
                     self.set_buffer_content(&content.bytes);
+                    self.render_text(&String::from_utf8_lossy(&content.bytes));
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 s if s.starts_with("image/") => {
-                    self.render_image_from_bytes(&content.bytes);
                     let url = url.to_string();
                     self.append_history(&url);
                     self.set_buffer_mime(&s);
                     self.set_buffer_content(&content.bytes);
+                    self.render_image_from_bytes(&content.bytes);
                     self.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 _ => {}
@@ -789,18 +752,18 @@ impl GemView {
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
                     if content.mime.starts_with("text") {
+                        let url = url.to_string();
+                        viewer.append_history(&url);
                         if content.is_map() {
                             viewer.render_gopher(&content);
                         } else {
                             viewer.render_text(&String::from_utf8_lossy(&content.bytes));
                         }
-                        let url = url.to_string();
-                        viewer.append_history(&url);
                         viewer.emit_by_name::<()>("page-loaded", &[&url]);
                     } else if content.mime.starts_with("image") {
-                        viewer.render_image_from_bytes(&content.bytes);
                         let url = url.to_string();
                         viewer.append_history(&url);
+                        viewer.render_image_from_bytes(&content.bytes);
                         viewer.emit_by_name::<()>("page-loaded", &[&url]);
                     } else {
                         let filename = if let Some(segments) = url.path_segments() {
@@ -841,11 +804,11 @@ impl GemView {
         receiver.attach(None, move |response| {
             match response {
                 Response::Success(content) => {
-                    viewer.render_text(&String::from_utf8_lossy(&content.bytes));
                     let url = url.to_string();
                     viewer.append_history(&url);
                     viewer.set_buffer_mime(&content.mime);
                     viewer.set_buffer_content(&content.bytes);
+                    viewer.render_text(&String::from_utf8_lossy(&content.bytes));
                     viewer.emit_by_name::<()>("page-loaded", &[&url]);
                 }
                 Response::Error(err) => {
@@ -1036,29 +999,29 @@ impl GemView {
         let end_url = content.url.as_ref().unwrap();
         match content.mime.as_str() {
             "text/gemini" => {
-                self.render_gmi(&String::from_utf8_lossy(&content.bytes));
                 self.append_history(end_url);
+                self.render_gmi(&String::from_utf8_lossy(&content.bytes));
                 self.emit_by_name::<()>("page-loaded", &[end_url]);
             }
             s if s.starts_with("text/") => {
-                self.render_text(&String::from_utf8_lossy(&content.bytes));
                 self.append_history(end_url);
+                self.render_text(&String::from_utf8_lossy(&content.bytes));
                 self.emit_by_name::<()>("page-loaded", &[end_url]);
             }
             s if s.starts_with("image") => {
-                self.render_image_from_bytes(&content.bytes);
                 self.append_history(end_url);
+                self.render_image_from_bytes(&content.bytes);
                 self.emit_by_name::<()>("page-loaded", &[end_url]);
             }
             _ => {
                 let derived = tree_magic_mini::from_u8(&content.bytes);
                 if derived.starts_with("text") {
-                    self.render_text(&String::from_utf8_lossy(&content.bytes));
                     self.append_history(end_url);
+                    self.render_text(&String::from_utf8_lossy(&content.bytes));
                     self.emit_by_name::<()>("page-loaded", &[end_url]);
                 } else if derived.starts_with("image") {
-                    self.render_image_from_bytes(&content.bytes);
                     self.append_history(end_url);
+                    self.render_image_from_bytes(&content.bytes);
                     self.emit_by_name::<()>("page-loaded", &[end_url]);
                 } else {
                     let filename = if let Some(segments) = url.path_segments() {

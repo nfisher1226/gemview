@@ -178,22 +178,22 @@ mod test {
     }
     #[test]
     fn response_parse() {
-        let raw = "2 text/gemini 0\r\nLorum Ipsum";
-        let response = Response::try_from(raw.as_bytes()).unwrap();
+        let raw = "2 text/gemini 0\r\nLorum Ipsum".to_string().into_bytes();
+        let response = Response::try_from(&raw).unwrap();
         assert_eq!(response.status, Status::Success);
         assert_eq!(response.meta, "text/gemini 0");
         assert_eq!(response.data, "Lorum Ipsum".as_bytes());
     }
     #[test]
     fn response_parse_empty() {
-        let raw = "";
-        let response = Response::try_from(raw.as_bytes()).unwrap_err();
+        let raw: Vec<u8> = "".to_string().into_bytes();
+        let response = Response::try_from(&raw).unwrap_err();
         assert_eq!(response, ResponseParseError::EmptyResponse);
     }
     #[test]
     fn response_parse_missing_space() {
-        let raw = "2text/gemini\r\n#Hello!";
-        let response = Response::try_from(raw.as_bytes()).unwrap_err();
+        let raw: Vec<u8> = "2text/gemini\r\n#Hello!".to_string().into_bytes();
+        let response = Response::try_from(&raw).unwrap_err();
         assert_eq!(response, ResponseParseError::InvalidResponseHeader);
     }
 }

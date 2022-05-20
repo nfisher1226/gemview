@@ -1,6 +1,6 @@
 //! A library for making requests to gemini servers and parsing
 //! reponses. This library requires acccess to `std::net` and
-//! `rustls`.
+//! `openssl`.
 //!
 
 use super::protocol;
@@ -216,7 +216,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 
 /// Make a request to a [URL](url::Url). The scheme will default to gemini
 ///
-/// # Errors:
+/// # Errors
 /// Will return a [`RequestError`] on any sort of error
 /// # Example:
 /// ```no_run
