@@ -13,6 +13,10 @@ Contents
 * finish Spartan upload support
 * Gemini/Spartan - double check file mime type and attempt to handle in
   application before falling back to downloading
+* Gemini - rewrite of parser
+  * Consecutive blockquote lines are grouped together
+  * Reduced allocations by specifying lifetimes for &str's
+  * main parser loop is significantly shorter, with no nested loop
 
 ## 0.4.0 release
 * improved handling up "request-download" signal
