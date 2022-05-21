@@ -84,7 +84,7 @@ pub enum GemtextNode<'a> {
     /// A preformatted text block starts with the characters "\`\`\`"
     ///
     /// The first string contained is the text within the preformatted text (newlines and all). The second string is an optional formatting tag for the preformatted text a la Markdown. It's worth noting that this is more clearly listed as an "alt text" as opposed to a formatting tag.
-    Preformatted(String, Option<String>),
+    Preformatted(String, Option<&'a str>),
 }
 
 impl<'a> Display for GemtextNode<'a> {
@@ -170,17 +170,17 @@ impl Default for State {
 }
 
 #[derive(Default)]
-struct Parser<'a> {
+pub struct Parser<'a> {
     state: State,
     preblk: String,
-    pre_alt: Option<String>,
+    pre_alt: Option<&'a str>,
     quoteblk: String,
     lines: Vec<GemtextNode<'a>>,
 }
 
 impl<'a> Parser<'a> {
     // Runs the loop over the full document
-    fn parse(mut self, text: &'a str) -> Vec<GemtextNode<'a>> {
+    pub fn parse(mut self, text: &'a str) -> Vec<GemtextNode<'a>> {
         for line in text.lines() {
             match self.state {
                 State::Preformatted => self.parse_preformatted(line),
@@ -207,10 +207,10 @@ impl<'a> Parser<'a> {
         self.lines.push(GemtextNode::parse_list_item(line));
     }
 
-    fn enter_preformatted(&mut self, line: &str) {
+    fn enter_preformatted(&mut self, line: &'a str) {
         self.state = State::Preformatted;
         if line.len() > 3 {
-            self.pre_alt = Some(line[3..].to_string());
+            self.pre_alt = Some(&line[3..].trim());
         }
     }
 
@@ -287,15 +287,9 @@ impl<'a> Parser<'a> {
     }
 }
 
-#[must_use]
-pub fn parse_gemtext(text: &str) -> Vec<GemtextNode> {
-    let parser = Parser::default();
-    parser.parse(text)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{GemtextNode, Link, parse_gemtext};
+    use super::{GemtextNode, Link, Parser};
 
     #[test]
     fn parse_link() {
@@ -429,13 +423,13 @@ mod tests {
     #[test]
     fn parse_doc() {
         let doc = include_str!("test.gmi");
-        let parsed = parse_gemtext(doc);
+        let parsed = Parser::default().parse(doc);
         assert_eq!(parsed[0], GemtextNode::H1("A heading"));
         assert_eq!(
             parsed[1],
             GemtextNode::Preformatted(
                 "# This should be preformatted\n> And this\n* This too\nAnd this".to_string(),
-                Some("Ignore this".to_string()),
+                Some("Ignore this"),
             )
         );
         assert_eq!(

@@ -296,7 +296,7 @@ impl GemView {
     /// Renders the given `&str` as a gemtext document
     pub fn render_gmi(&self, data: &str) {
         self.clear();
-        let nodes = gemini::parser::parse_gemtext(data);
+        let nodes = gemini::parser::Parser::default().parse(data);
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
@@ -418,11 +418,11 @@ impl GemView {
         let (old, _) = u.split_once(':').unwrap_or(("gemini", ""));
         let (scheme, _) = link.split_once(':').unwrap_or((old, ""));
         let start = match scheme {
-            "gemini" => "<span color=\"#0000ff\"> 🌐  </span>",
+            "gemini" => "<span color=\"#0000ff\"> 🛰️  </span>",
             "spartan" => "<span color=\"#0000ff\"> 🗡️ </span>",
-            "gopher" => "<span color=\"#00ff00\"> 🌐  </span>",
+            "gopher" => "<span color=\"#00ff00\"> 🕳️  </span>",
             "finger" => "<span color=\"#00ffff\"> 👉 </span>",
-            "data" => "<span color=\"#ff00ff\"> 🌐  </span>",
+            "data" => "<span color=\"#ff00ff\"> 📊 </span>",
             "http" | "https" => "<span color=\"#ff0000\"> 🌐  </span>",
             "mailto" => "<span color=\"#ffff00\"> ✉️ </span>",
             "file" => "<span color=\"#0000ff\"> 🗄️ </span>",
@@ -440,7 +440,7 @@ impl GemView {
     fn insert_prompt_link(&self, link: &str, text: Option<String>) {
         match self.uri().split_once(':') {
             Some((s, _)) if s == "spartan" => {
-                let start = "<span color=\"#0000ff\"> 🗡️  </span>";
+                let start = "<span color=\"#0000ff\"> 📤  </span>";
                 let label = self.insert_gmi_link_markup_label(start, link, text);
                 let viewer = self.clone();
                 label.connect_activate_link(move |_, link| {

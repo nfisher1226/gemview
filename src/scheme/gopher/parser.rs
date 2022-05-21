@@ -40,7 +40,7 @@ impl LineType {
             return None;
         }
         if line.starts_with('i') {
-            let mut text = line.split('\t').next().unwrap().to_string();
+            let mut text = line.split('\t').next().unwrap_or("").to_string();
             text.remove(0);
             Some(Self::Text(text))
         } else if line.starts_with('7') {
@@ -105,7 +105,7 @@ impl ToMarkup for Link {
     /// Generates Pango markup from a Gopher link
     fn to_markup(&self, font: &FontDescription) -> String {
         format!(
-            "<span color=\"#00ff00\"> 🌐  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
+            "<span color=\"#00ff00\"> 🕳️  </span><span font=\"{font}\"><a href=\"{}\">{}</a></span>",
             &self.to_string().replace(' ', "%20").replace('&', "&amp;"),
             glib::markup_escape_text(&self.display)
         )
