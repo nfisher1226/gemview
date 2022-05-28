@@ -1,3 +1,5 @@
+use url::quirks::protocol;
+
 use {
     crate::scheme::{ToLabel, ToMarkup},
     gtk::{gdk::Cursor, glib, pango::FontDescription, Label},
@@ -68,7 +70,12 @@ impl LineType {
 
 impl fmt::Display for Link {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "gopher://{}:{}{}", &self.host, &self.port, &self.path,)
+        let protocol = if &self.port == "79" {
+            "finger"
+        } else {
+            "gopher"
+        };
+        write!(f, "{}://{}:{}{}", protocol, &self.host, &self.port, &self.path)
     }
 }
 

@@ -59,19 +59,19 @@ pub enum RequestError {
 impl std::fmt::Display for RequestError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            RequestError::IoError(e) => {
+            Self::IoError(e) => {
                 write!(f, "IO error: {}", e)
             }
-            RequestError::DnsError => {
+            Self::DnsError => {
                 write!(f, "DNS Error")
             }
-            RequestError::TlsError(e) => {
+            Self::TlsError(e) => {
                 write!(f, "TLS Error: {}", e)
             }
-            RequestError::UnknownScheme(s) => {
+            Self::UnknownScheme(s) => {
                 write!(f, "Unknown scheme {}", s)
             }
-            RequestError::ResponseParseError(e) => {
+            Self::ResponseParseError(e) => {
                 write!(f, "Response parse error: {}", e)
             }
         }
@@ -81,12 +81,24 @@ impl std::fmt::Display for RequestError {
 impl std::error::Error for RequestError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            RequestError::IoError(e) => Some(e),
-            RequestError::DnsError | RequestError::TlsError(_) | RequestError::UnknownScheme(_) => {
+            Self::IoError(e) => Some(e),
+            Self::DnsError | Self::TlsError(_) | Self::UnknownScheme(_) => {
                 None
             }
-            RequestError::ResponseParseError(e) => Some(e),
+            Self::ResponseParseError(e) => Some(e),
         }
+    }
+}
+
+impl From<std::io::Error> for RequestError {
+    fn from(error: std::io::Error) -> Self {
+        Self::IoError(error)
+    }
+}
+
+impl From<ResponseParseError> for RequestError {
+    fn from(error: ResponseParseError) -> Self {
+        Self::ResponseParseError(error)
     }
 }
 

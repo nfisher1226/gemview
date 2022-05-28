@@ -1,3 +1,15 @@
+//! This module contains a parser for Gemtext documents.
+//! ## Usage
+//! ```
+//! use gemview::scheme::gemini::parser::{GemtextNode, Parser};
+//! # fn main() {
+//! let doc = "# Hello from gemtext!\nShall we parse?";
+//! let parser = Parser::default();
+//! let lines = parser.parse(doc);
+//! assert_eq!(lines[0], GemtextNode::H1("Hello from gemtext!"));
+//! assert_eq!(lines[1], GemtextNode::Text("Shall we parse?"));
+//! # }
+//! ```
 use std::{convert::TryFrom, fmt::Display};
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -170,6 +182,7 @@ impl Default for State {
 }
 
 #[derive(Default)]
+/// A parser for Gemtext documents
 pub struct Parser<'a> {
     state: State,
     preblk: String,
@@ -179,6 +192,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    #[must_use]
     // Runs the loop over the full document
     pub fn parse(mut self, text: &'a str) -> Vec<GemtextNode<'a>> {
         for line in text.lines() {
@@ -210,7 +224,7 @@ impl<'a> Parser<'a> {
     fn enter_preformatted(&mut self, line: &'a str) {
         self.state = State::Preformatted;
         if line.len() > 3 {
-            self.pre_alt = Some(&line[3..].trim());
+            self.pre_alt = Some(line[3..].trim());
         }
     }
 
@@ -240,7 +254,7 @@ impl<'a> Parser<'a> {
         if line.starts_with("```") {
             self.lines.push(GemtextNode::Preformatted(
                 self.preblk.trim_end().to_string(),
-                self.pre_alt.clone(),
+                self.pre_alt,
             ));
             self.state = State::Normal;
             self.pre_alt = None;
