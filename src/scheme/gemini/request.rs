@@ -222,7 +222,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 /// # fn main() -> Result<(), gemview::scheme::RequestError> {
 /// use std::convert::TryFrom;
 /// let url = Url::parse("gemini://gemini.circumlunar.space/").unwrap();
-/// let response = request::make_request(&url)?;
+/// let response = request::request(&url)?;
 /// assert_eq!(response.status, StatusCode::Success(0));
 /// # Ok(())
 /// # }
