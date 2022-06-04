@@ -905,7 +905,7 @@ impl GemView {
         thread::spawn(move || {
             let mut url = u;
             loop {
-                let response = match gemini::request::make_request(&url) {
+                let response = match gemini::request::request(&url) {
                     Ok(r) => r,
                     Err(e) => {
                         let estr = format!("{:?}", e);

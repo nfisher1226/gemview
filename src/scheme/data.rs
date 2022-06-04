@@ -1,6 +1,6 @@
 use std::error::Error;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MimeType {
     TextPlain,
     TextGemini,
@@ -11,14 +11,14 @@ pub(crate) enum MimeType {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DataUrl {
     mime: MimeType,
     base64: bool,
     data: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum Data {
     Text(String),
     Bytes(Vec<u8>),

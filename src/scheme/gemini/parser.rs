@@ -30,10 +30,7 @@ impl<'a> TryFrom<&'a str> for Link<'a> {
         if let Some(url) = split.next() {
             let display = split.collect::<Vec<&str>>().join(" ");
             if display.is_empty() {
-                Ok(Link {
-                    url,
-                    display: None,
-                })
+                Ok(Link { url, display: None })
             } else {
                 Ok(Link {
                     url,
@@ -162,7 +159,7 @@ impl<'a> GemtextNode<'a> {
     }
 
     fn parse_blockquote(text: &'a str) -> Self {
-        match text.split_once(|x: char| x.is_whitespace()) {
+        match text.split_once(char::is_whitespace) {
             Some((prefix, suffix)) if prefix == ">" => GemtextNode::Blockquote(suffix.to_string()),
             _ => GemtextNode::Text(text),
         }
@@ -446,10 +443,7 @@ mod tests {
                 Some("Ignore this"),
             )
         );
-        assert_eq!(
-            parsed[2],
-            GemtextNode::Text("This is just text.")
-        );
+        assert_eq!(parsed[2], GemtextNode::Text("This is just text."));
         assert_eq!(
             parsed[3],
             GemtextNode::Blockquote("This is a single line blockquote".to_string())

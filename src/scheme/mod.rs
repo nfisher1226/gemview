@@ -82,9 +82,7 @@ impl std::error::Error for RequestError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::IoError(e) => Some(e),
-            Self::DnsError | Self::TlsError(_) | Self::UnknownScheme(_) => {
-                None
-            }
+            Self::DnsError | Self::TlsError(_) | Self::UnknownScheme(_) => None,
             Self::ResponseParseError(e) => Some(e),
         }
     }

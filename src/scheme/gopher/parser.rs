@@ -1,12 +1,10 @@
-use url::quirks::protocol;
-
 use {
     crate::scheme::{ToLabel, ToMarkup},
     gtk::{gdk::Cursor, glib, pango::FontDescription, Label},
     std::fmt,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum LineType {
     /// An ordinary text line
     Text(String),
@@ -18,7 +16,7 @@ pub(crate) enum LineType {
     Http(ExternLink),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct Link {
     /// The string displayed to represent the link
     pub display: String,
@@ -30,7 +28,7 @@ pub(crate) struct Link {
     pub port: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ExternLink {
     pub display: String,
     pub url: String,
@@ -75,7 +73,11 @@ impl fmt::Display for Link {
         } else {
             "gopher"
         };
-        write!(f, "{}://{}:{}{}", protocol, &self.host, &self.port, &self.path)
+        write!(
+            f,
+            "{}://{}:{}{}",
+            protocol, &self.host, &self.port, &self.path
+        )
     }
 }
 

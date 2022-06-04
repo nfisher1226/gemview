@@ -133,7 +133,7 @@ fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, 
 
 /// Use a stream given `std::io::Write` to write a request
 fn use_stream_do_request(req: &str, stream: &mut dyn std::io::Write) -> Result<(), RequestError> {
-    stream.write(req.as_bytes())?;
+    _ = stream.write(req.as_bytes())?;
     Ok(())
 }
 
@@ -227,7 +227,7 @@ fn make_mercury_request(url: &Url) -> Result<protocol::Response, RequestError> {
 /// # Ok(())
 /// # }
 /// ```
-pub fn make_request(url: &Url) -> Result<protocol::Response, RequestError> {
+pub fn request(url: &Url) -> Result<protocol::Response, RequestError> {
     // Get the scheme, and see what type of request we're making
     match url.scheme() {
         "gemini" => make_gemini_request(url),
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn make_request_invalid_scheme_error() {
         let raw_url = Url::try_from("https://example.com").unwrap();
-        let response = make_request(&raw_url).unwrap_err();
+        let response = request(&raw_url).unwrap_err();
         match response {
             RequestError::UnknownScheme(s) => {
                 assert_eq!(s, "https");
