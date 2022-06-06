@@ -27,7 +27,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
         override: true
     - name: InstallDeps
-      run: apt install libssl-dev
+      run: sudo apt-get install libssl-dev
     - name: Build
       run: cargo build --verbose --all-features
     - name: Run tests
