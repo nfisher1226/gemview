@@ -12,22 +12,12 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
-    container:
-      image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
-    strategy:
-      matrix:
-        rust:
-          - stable
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust }}
-        override: true
+    - uses: actions/checkout@v3
     - name: InstallDeps
-      run: sudo apt-get install libssl-dev
+      run: sudo apt install libssl-dev gtk4 gtk4-dev
     - name: Build
       run: cargo build --verbose --all-features
     - name: Run tests
