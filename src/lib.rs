@@ -349,7 +349,7 @@ impl GemView {
                     iter = buf.end_iter();
                     buf.insert(&mut iter, "\n");
                 }
-                GemtextNode::Preformatted(mut text, _) => {
+                GemtextNode::Preformatted(text, _) => {
                     let prebox = gtk::builders::BoxBuilder::new()
                         .orientation(gtk::Orientation::Vertical)
                         .hexpand(true)
@@ -364,8 +364,6 @@ impl GemView {
                     let anchor = buf.create_child_anchor(&mut iter);
                     self.add_child_at_anchor(&prebox, &anchor);
                     let font = self.font_pre();
-                    // strip trailing newline
-                    text.truncate(text.len() - 1);
                     let label = gtk::builders::LabelBuilder::new()
                         .selectable(true)
                         .use_markup(true)
