@@ -1,7 +1,18 @@
 Contents
 ========
-* [0.5.0](0.5.0-release)
-* [0.4.0](0.4.0-release)
+* [0.5.2](#0.5.2-release)
+* [0.5.0](#0.5.0-release)
+* [0.4.0](#0.4.0-release)
+
+## 0.5.2 release
+Fix preformatted regression caused by new gemtext parser
+* The old parser always inserted an empty newline at the end of every
+  preformatted block
+* This was being compensated for by truncating the block by one character
+* Without the trailing newline, this was truncating the fina non-whitespace
+  character of every preformatted block
+* The fix removes the truncation.
+  * Bonus - the variable is now immutable.
 
 ## 0.5.0 release
 * add `connect_request_input_sensitive` method
