@@ -19,11 +19,13 @@ use {
 
 mod imp;
 pub mod scheme;
+mod upload;
 use {
     data::{Data, DataUrl, MimeType},
     gemini::parser::GemtextNode,
     gopher::GopherMap,
     scheme::{data, finger, gemini, gopher, spartan, Content, Response, ToLabel},
+    upload::UploadWidget,
 };
 
 glib::wrapper! {
