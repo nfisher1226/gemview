@@ -13,11 +13,11 @@ license = "LGPL-3.0"
 
 [dependencies]
 base64 = "0.13"
+lazy_static = "1.4"
 mime_open = "0.2"
 native-tls = "0.2"
 once_cell = "1"
-# Self signed ssl certs
-# rcgen = "0.9"
+rcgen = "0.9"
 textwrap = "0.15"
 tree_magic_mini = "3.0"
 url = "2.2"

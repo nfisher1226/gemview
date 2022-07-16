@@ -1205,7 +1205,7 @@ impl GemView {
     }
 
     fn wrap_text(&self, text: &str, font_size: i32) -> String {
-        let factor = font_size / 1500;
+        let factor = font_size / 1525;
         let width: usize = match self.root() {
             Some(win) => std::cmp::min((win.width() / factor).try_into().unwrap(), 175),
             None => 175,

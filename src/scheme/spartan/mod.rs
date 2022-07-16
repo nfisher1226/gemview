@@ -1,7 +1,5 @@
-use super::ResponseParseError;
-
 use {
-    super::RequestError,
+    super::{RequestError, ResponseParseError},
     std::{
         convert::TryFrom,
         error::Error,
