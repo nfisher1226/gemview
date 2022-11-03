@@ -37,8 +37,9 @@ impl ObjectSubclass for GemView {
 
 // Trait shared by all GObjects
 impl ObjectImpl for GemView {
-    fn constructed(&self, obj: &Self::Type) {
-        self.parent_constructed(obj);
+    fn constructed(&self) {
+        self.parent_constructed();
+        let obj = self.obj();
         obj.set_editable(false);
         obj.set_cursor_visible(false);
         *self.history.borrow_mut() = History::default();
@@ -67,72 +68,39 @@ impl ObjectImpl for GemView {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![
-                Signal::builder(
-                    "page-loaded",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "page-load-started",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "page-load-redirect",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "page-load-failed",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-unsupported-scheme",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-download",
-                    &[String::static_type().into(), String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-new-tab",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-new-window",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-input",
-                    &[String::static_type().into(), String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-input-sensitive",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
-                Signal::builder(
-                    "request-upload",
-                    &[String::static_type().into()],
-                    <()>::static_type().into(),
-                )
-                .build(),
+                Signal::builder("page-loaded")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("page-load-started")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("page-load-redirect")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("page-load-failed")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-unsupported-scheme")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-download")
+                    .param_types([glib::Type::STRING, glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-new-tab")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-new-window")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-input")
+                    .param_types([glib::Type::STRING, glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-input-sensitive")
+                    .param_types([glib::Type::STRING])
+                    .build(),
+                Signal::builder("request-upload")
+                    .param_types([glib::Type::STRING])
+                    .build(),
             ]
         });
         SIGNALS.as_ref()

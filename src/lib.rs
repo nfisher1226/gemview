@@ -45,12 +45,12 @@ impl Default for GemView {
 impl GemView {
     #[allow(clippy::must_use_candidate)]
     pub fn new() -> Self {
-        Object::new(&[]).expect("Failed to create `GemView`.")
+        Object::new(&[])
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn with_label(label: &str) -> Self {
-        Object::new(&[("label", &label)]).expect("Failed to create `GemView`.")
+        Object::new(&[("label", &label)])
     }
 
     fn add_actions(&self) {

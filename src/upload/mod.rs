@@ -22,6 +22,5 @@ impl Default for UploadWidget {
 impl UploadWidget {
     pub fn new() -> Self {
         Object::new(&[("orientation", &gtk::Orientation::Vertical)])
-            .expect("Cannot create upload widget")
     }
 }

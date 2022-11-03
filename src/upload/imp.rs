@@ -26,8 +26,8 @@ impl ObjectSubclass for UploadWidget {
 }
 
 impl ObjectImpl for UploadWidget {
-    fn constructed(&self, obj: &Self::Type) {
-        self.parent_constructed(obj);
+    fn constructed(&self) {
+        self.parent_constructed();
     }
 }
 
