@@ -11,17 +11,17 @@ use {
 
 /// Make a finger protocol request
 pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
-    let host_str = match url.host_str() {
-        Some(h) => format!("{}:{}", h, url.port().unwrap_or(79)),
-        None => return Err(RequestError::DnsError.into()),
+    let host_str = if let Some(h) = url.host_str() {
+        format!("{h}:{}", url.port().unwrap_or(79))
+    } else {
+        return Err(RequestError::DnsError.into());
     };
     let mut it = host_str.to_socket_addrs()?;
-    let socket_addrs = match it.next() {
-        Some(s) => s,
-        None => {
-            let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
-            return Err(err.into());
-        }
+    let socket_addrs = if let Some(s) = it.next() {
+        s
+    } else {
+        let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
+        return Err(err.into());
     };
     match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0)) {
         Err(e) => Err(e.into()),

@@ -116,12 +116,11 @@ fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, 
         Ok(it) => it,
         Err(e) => return Err(RequestError::IoError(e)),
     };
-    let socket_addrs = match addrs_iter.next() {
-        Some(s) => s,
-        None => {
-            let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
-            return Err(RequestError::IoError(err));
-        }
+    let socket_addrs = if let Some(s) = addrs_iter.next() {
+        s
+    } else {
+        let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
+        return Err(RequestError::IoError(err));
     };
     let tcp_stream = match std::net::TcpStream::connect_timeout(&socket_addrs, Duration::new(10, 0))
     {
@@ -194,7 +193,7 @@ fn make_gemini_request(url: &Url) -> Result<protocol::Response, RequestError> {
     let host = url.host_str().unwrap_or("");
     let tls_stream = connector.connect(host, tcp_stream);
     let mut tls_stream = match tls_stream {
-        Err(e) => return Err(RequestError::TlsError(format!("{:?}", e))),
+        Err(e) => return Err(RequestError::TlsError(format!("{e:?}"))),
         Ok(stream) => stream,
     };
 

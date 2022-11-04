@@ -1,7 +1,7 @@
 use {
     gtk::glib,
     lazy_static::lazy_static,
-    std::{error, fmt, fs, io, path::PathBuf}
+    std::{error, fmt, fs, io, path::PathBuf},
 };
 
 lazy_static! {

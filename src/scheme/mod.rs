@@ -60,19 +60,19 @@ impl std::fmt::Display for RequestError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::IoError(e) => {
-                write!(f, "IO error: {}", e)
+                write!(f, "IO error: {e}")
             }
             Self::DnsError => {
                 write!(f, "DNS Error")
             }
             Self::TlsError(e) => {
-                write!(f, "TLS Error: {}", e)
+                write!(f, "TLS Error: {e}")
             }
             Self::UnknownScheme(s) => {
-                write!(f, "Unknown scheme {}", s)
+                write!(f, "Unknown scheme {s}")
             }
             Self::ResponseParseError(e) => {
-                write!(f, "Response parse error: {}", e)
+                write!(f, "Response parse error: {e}")
             }
         }
     }

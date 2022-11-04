@@ -458,7 +458,7 @@ impl GemView {
             }
             _ => {
                 let text = if let Some(t) = text {
-                    Cow::from(format!("=: {} {}", link, t))
+                    Cow::from(format!("=: {link} {t}"))
                 } else {
                     Cow::from(link)
                 };
@@ -588,7 +588,7 @@ impl GemView {
                 "gemini" | "mercury" | "data" | "gopher" | "finger" | "file" | "spartan" => Ok(u),
                 s => {
                     self.emit_by_name::<()>("request-unsupported-scheme", &[&url.to_string()]);
-                    Err(format!("unsupported-scheme: {}", s).into())
+                    Err(format!("unsupported-scheme: {s}").into())
                 }
             },
             Err(e) => match e {
@@ -612,7 +612,7 @@ impl GemView {
         let url = match self.absolute_url(addr) {
             Ok(s) => s,
             Err(e) => {
-                let estr = format!("{:?}", e);
+                let estr = format!("{e:?}");
                 self.emit_by_name::<()>("page-load-failed", &[&estr]);
                 return;
             }
@@ -632,7 +632,7 @@ impl GemView {
         let data = match DataUrl::try_from(url.to_string().as_str()) {
             Ok(d) => d,
             Err(e) => {
-                let estr = format!("{:?}", e);
+                let estr = format!("{e:?}");
                 self.emit_by_name::<()>("page-load-failed", &[&estr]);
                 return;
             }
@@ -693,7 +693,7 @@ impl GemView {
                 && mime != "inode/directory"
             {
                 if let Err(e) = mime_open::open(url.as_ref()) {
-                    eprintln!("{}", e);
+                    eprintln!("{e}");
                 }
                 self.emit_by_name::<()>("page-loaded", &[&url.to_string()]);
                 return;
@@ -741,7 +741,7 @@ impl GemView {
             }
             Err(e) => {
                 sender
-                    .send(Response::Error(format!("{:?}", e)))
+                    .send(Response::Error(format!("{e:?}")))
                     .expect("Cannot send data");
             }
         });
@@ -796,7 +796,7 @@ impl GemView {
             }
             Err(e) => {
                 sender
-                    .send(Response::Error(format!("{:?}", e)))
+                    .send(Response::Error(format!("{e:?}")))
                     .expect("Cannot send data");
             }
         });
@@ -829,7 +829,7 @@ impl GemView {
                 let response = match spartan::request(&url) {
                     Ok(r) => r,
                     Err(e) => {
-                        let estr = format!("{:?}", e);
+                        let estr = format!("{e:?}");
                         sender
                             .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");
@@ -868,7 +868,7 @@ impl GemView {
                 let response = match spartan::post(&url, &data) {
                     Ok(r) => r,
                     Err(e) => {
-                        let estr = format!("{:?}", e);
+                        let estr = format!("{e:?}");
                         sender
                             .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");
@@ -908,7 +908,7 @@ impl GemView {
                 let response = match gemini::request::request(&url) {
                     Ok(r) => r,
                     Err(e) => {
-                        let estr = format!("{:?}", e);
+                        let estr = format!("{e:?}");
                         sender
                             .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");
@@ -917,11 +917,11 @@ impl GemView {
                 };
                 match response.status {
                     gemini::protocol::StatusCode::Redirect(c) => {
-                        println!("Redirect code {} with meta {}", c, response.meta);
+                        println!("Redirect code {c} with meta {}", response.meta);
                         url = match Url::try_from(response.meta.as_str()) {
                             Ok(r) => r,
                             Err(e) => {
-                                let estr = format!("{:?}", e);
+                                let estr = format!("{e:?}");
                                 sender
                                     .send(scheme::Response::Error(estr))
                                     .expect("Cannot send data");
@@ -960,7 +960,7 @@ impl GemView {
                         break;
                     }
                     s => {
-                        let estr = format!("{:?}", s);
+                        let estr = format!("{s:?}");
                         sender
                             .send(scheme::Response::Error(estr))
                             .expect("Cannot send data");

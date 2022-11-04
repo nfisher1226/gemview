@@ -7,8 +7,7 @@ use gtk::{
 
 #[derive(CompositeTemplate, Default)]
 #[template(file = "upload_widget.ui")]
-pub struct UploadWidget {
-}
+pub struct UploadWidget {}
 
 #[glib::object_subclass]
 impl ObjectSubclass for UploadWidget {
@@ -33,4 +32,3 @@ impl ObjectImpl for UploadWidget {
 
 impl WidgetImpl for UploadWidget {}
 impl BoxImpl for UploadWidget {}
-

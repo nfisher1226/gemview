@@ -99,23 +99,23 @@ pub enum GemtextNode<'a> {
 impl<'a> Display for GemtextNode<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
-            Self::Text(s) => write!(f, "{}", s),
+            Self::Text(s) => write!(f, "{s}"),
             Self::Link(link) => match &link.display {
-                Some(d) => write!(f, "=> {} {}", link.url, d),
+                Some(d) => write!(f, "=> {} {d}", link.url),
                 None => write!(f, "=> {}", link.url),
             },
             Self::Prompt(link) => match &link.display {
-                Some(d) => write!(f, "=: {} {}", link.url, d),
+                Some(d) => write!(f, "=: {} {d}", link.url),
                 None => write!(f, "=: {}", link.url),
             },
-            Self::H1(s) => write!(f, "# {}", s),
-            Self::H2(s) => write!(f, "## {}", s),
-            Self::H3(s) => write!(f, "### {}", s),
-            Self::ListItem(s) => write!(f, "* {}", s),
-            Self::Blockquote(s) => write!(f, "> {}", s),
-            Self::Preformatted(s, None) => write!(f, "```\n{}\n```", s),
+            Self::H1(s) => write!(f, "# {s}"),
+            Self::H2(s) => write!(f, "## {s}"),
+            Self::H3(s) => write!(f, "### {s}"),
+            Self::ListItem(s) => write!(f, "* {s}"),
+            Self::Blockquote(s) => write!(f, "> {s}"),
+            Self::Preformatted(s, None) => write!(f, "```\n{s}\n```"),
             Self::Preformatted(s, Some(d)) => {
-                write!(f, "```{}\n{}\n```", d, s)
+                write!(f, "```{d}\n{s}\n```")
             }
         }
     }
