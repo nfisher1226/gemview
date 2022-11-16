@@ -28,6 +28,13 @@ use {
     upload::UploadWidget,
 };
 
+enum TextSize {
+    Paragraph,
+    H1,
+    H2,
+    H3,
+}
+
 glib::wrapper! {
 /// The gemini browser widget is a subclass of the `TextView` widget which
 /// has been customized for browsing [geminispace](https://gemini.circumlunar.space).
@@ -45,12 +52,25 @@ impl Default for GemView {
 impl GemView {
     #[allow(clippy::must_use_candidate)]
     pub fn new() -> Self {
-        Object::new(&[])
+        Object::new(&[
+            ("margin-start", &45.to_value()),
+            ("margin-end", &45.to_value()),
+            ("margin-top", &25.to_value()),
+            ("margin-bottom", &25.to_value()),
+            ("wrap-mode", &gtk::WrapMode::Word),
+        ])
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn with_label(label: &str) -> Self {
-        Object::new(&[("label", &label)])
+        Object::new(&[
+            ("label", &label),
+            ("margin-start", &45.to_value()),
+            ("margin-end", &45.to_value()),
+            ("margin-top", &25.to_value()),
+            ("margin-bottom", &25.to_value()),
+            ("wrap-mode", &gtk::WrapMode::Word),
+        ])
     }
 
     fn add_actions(&self) {
@@ -178,6 +198,8 @@ impl GemView {
 
     /// Sets the font used to render "normal" elements
     pub fn set_font_paragraph(&self, font: FontDescription) {
+        let tag = self.imp().paragraph_tag.borrow_mut();
+        tag.set_font_desc(Some(&font));
         *self.imp().font_paragraph.borrow_mut() = font;
     }
 
@@ -211,6 +233,8 @@ impl GemView {
 
     /// Sets the font used to render H1 heading elements
     pub fn set_font_h1(&self, font: FontDescription) {
+        let tag = self.imp().h1_tag.borrow_mut();
+        tag.set_font_desc(Some(&font));
         *self.imp().font_h1.borrow_mut() = font;
     }
 
@@ -222,6 +246,8 @@ impl GemView {
 
     /// Sets the font used to render H2 heading elements
     pub fn set_font_h2(&self, font: FontDescription) {
+        let tag = self.imp().h2_tag.borrow_mut();
+        tag.set_font_desc(Some(&font));
         *self.imp().font_h2.borrow_mut() = font;
     }
 
@@ -233,6 +259,8 @@ impl GemView {
 
     /// Sets the font used to render H3 heading elements
     pub fn set_font_h3(&self, font: FontDescription) {
+        let tag = self.imp().h3_tag.borrow_mut();
+        tag.set_font_desc(Some(&font));
         *self.imp().font_h3.borrow_mut() = font;
     }
 
@@ -302,16 +330,16 @@ impl GemView {
         for node in nodes {
             match node {
                 GemtextNode::Text(text) => {
-                    self.insert_text_block(text, &self.font_paragraph());
+                    self.insert_text_block(text, TextSize::Paragraph);
                 }
                 GemtextNode::H1(text) => {
-                    self.insert_text_block(text, &self.font_h1());
+                    self.insert_text_block(text, TextSize::H1);
                 }
                 GemtextNode::H2(text) => {
-                    self.insert_text_block(text, &self.font_h2());
+                    self.insert_text_block(text, TextSize::H2);
                 }
                 GemtextNode::H3(text) => {
-                    self.insert_text_block(text, &self.font_h3());
+                    self.insert_text_block(text, TextSize::H3);
                 }
                 GemtextNode::ListItem(text) => {
                     self.insert_list_item(text);
@@ -384,16 +412,23 @@ impl GemView {
         }
     }
 
-    fn insert_text_block(&self, text: &str, font: &FontDescription) {
+    fn insert_text_block(&self, text: &str, size: TextSize) {
         let (buf, mut iter) = self.get_iter();
-        buf.insert_markup(
+        let tag = match size {
+            TextSize::Paragraph => self.imp().paragraph_tag.borrow(),
+            TextSize::H1 => self.imp().h1_tag.borrow(),
+            TextSize::H2 => self.imp().h2_tag.borrow(),
+            TextSize::H3 => self.imp().h3_tag.borrow(),
+        };
+        buf.insert_with_tags(&mut iter, text, &[&tag]);
+        /*buf.insert_markup(
             &mut iter,
             &format!(
                 "<span font=\"{}\">{}</span>",
                 font.to_str(),
                 self.wrap_text(text, font.size()),
             ),
-        );
+        );*/
         iter = buf.end_iter();
         buf.insert(&mut iter, "\n");
     }
@@ -462,7 +497,7 @@ impl GemView {
                 } else {
                     Cow::from(link)
                 };
-                self.insert_text_block(&text, &self.font_paragraph());
+                self.insert_text_block(&text, TextSize::Paragraph);
             }
         }
     }

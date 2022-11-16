@@ -25,6 +25,10 @@ pub struct GemView {
     pub(crate) font_h1: RefCell<FontDescription>,
     pub(crate) font_h2: RefCell<FontDescription>,
     pub(crate) font_h3: RefCell<FontDescription>,
+    pub(crate) paragraph_tag: RefCell<gtk::TextTag>,
+    pub(crate) h1_tag: RefCell<gtk::TextTag>,
+    pub(crate) h2_tag: RefCell<gtk::TextTag>,
+    pub(crate) h3_tag: RefCell<gtk::TextTag>,
 }
 
 // The central trait for subclassing a GObject
@@ -63,6 +67,48 @@ impl ObjectImpl for GemView {
         font.set_size(18);
         *self.font_h1.borrow_mut() = font;
         obj.add_actions();
+        let buffer = obj.buffer();
+        let normal = buffer
+            .create_tag(
+                Some("normal"),
+                &[
+                    ("font", &"Sans Normal 12"),
+                    ("justification", &gtk::Justification::Fill),
+                    ("indent", &25.to_value()),
+                ],
+            )
+            .unwrap();
+        *self.paragraph_tag.borrow_mut() = normal;
+        let h1tag = buffer
+            .create_tag(
+                Some("h1"),
+                &[
+                    ("font", &"Sans Normal 18"),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        *self.h1_tag.borrow_mut() = h1tag;
+        let h2tag = buffer
+            .create_tag(
+                Some("h2"),
+                &[
+                    ("font", &"Sans Normal 16"),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        *self.h2_tag.borrow_mut() = h2tag;
+        let h3tag = buffer
+            .create_tag(
+                Some("h3"),
+                &[
+                    ("font", &"Sans Normal 14"),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        *self.h3_tag.borrow_mut() = h3tag;
     }
 
     fn signals() -> &'static [Signal] {
