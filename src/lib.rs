@@ -421,28 +421,17 @@ impl GemView {
             TextSize::H3 => self.imp().h3_tag.borrow(),
         };
         buf.insert_with_tags(&mut iter, text, &[&tag]);
-        /*buf.insert_markup(
-            &mut iter,
-            &format!(
-                "<span font=\"{}\">{}</span>",
-                font.to_str(),
-                self.wrap_text(text, font.size()),
-            ),
-        );*/
         iter = buf.end_iter();
         buf.insert(&mut iter, "\n");
     }
 
     fn insert_list_item(&self, text: &str) {
         let (buf, mut iter) = self.get_iter();
-        let font = self.font_paragraph();
-        buf.insert_markup(
+        let tag = self.imp().paragraph_tag.borrow();
+        buf.insert_with_tags(
             &mut iter,
-            &format!(
-                "<span font=\"{}\">  • {}</span>",
-                font.to_str(),
-                self.wrap_text(text, self.font_paragraph().size()),
-            ),
+            &format!("  • {text}"),
+            &[&tag],
         );
         iter = buf.end_iter();
         buf.insert(&mut iter, "\n");
