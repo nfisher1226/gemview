@@ -74,7 +74,6 @@ impl ObjectImpl for GemView {
                 &[
                     ("font", &"Sans Normal 12"),
                     ("justification", &gtk::Justification::Fill),
-                    ("indent", &25.to_value()),
                 ],
             )
             .unwrap();

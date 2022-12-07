@@ -430,7 +430,7 @@ impl GemView {
         let tag = self.imp().paragraph_tag.borrow();
         buf.insert_with_tags(
             &mut iter,
-            &format!("• {text}"),
+            &format!("  • {text}"),
             &[&tag],
         );
         iter = buf.end_iter();
