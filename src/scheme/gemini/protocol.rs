@@ -203,9 +203,8 @@ impl core::convert::TryFrom<&[u8]> for Response {
         };
 
         // We'll split on whitespace
-        let (status_code, meta) = match response_header.split_once(' ') {
-            None => return Err(ResponseParseError::InvalidResponseHeader),
-            Some(r) => r,
+        let Some((status_code, meta)) = response_header.split_once(' ') else {
+            return Err(ResponseParseError::InvalidResponseHeader);
         };
         // Then we'll trim the meta
         let meta = meta.trim();
@@ -213,9 +212,8 @@ impl core::convert::TryFrom<&[u8]> for Response {
         if meta.len() > 1024 {
             return Err(ResponseParseError::InvalidResponseHeader);
         }
-        let status_code = match status_code.parse::<u8>() {
-            Ok(s) => s,
-            Err(_) => return Err(ResponseParseError::InvalidResponseHeader),
+        let Ok(status_code) = status_code.parse::<u8>() else {
+            return Err(ResponseParseError::InvalidResponseHeader);
         };
 
         let status = StatusCode::from(status_code);

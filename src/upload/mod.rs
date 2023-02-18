@@ -18,7 +18,7 @@ impl Default for UploadWidget {
 impl UploadWidget {
     pub fn new() -> Self {
         Object::builder()
-            .property("orientation", &gtk::Orientation::Vertical)
+            .property("orientation", gtk::Orientation::Vertical)
             .build()
     }
 }

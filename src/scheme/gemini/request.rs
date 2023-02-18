@@ -116,9 +116,7 @@ fn open_tcp_stream(url: &Url, default_port: u16) -> Result<std::net::TcpStream, 
         Ok(it) => it,
         Err(e) => return Err(RequestError::IoError(e)),
     };
-    let socket_addrs = if let Some(s) = addrs_iter.next() {
-        s
-    } else {
+    let Some(socket_addrs) = addrs_iter.next() else {
         let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
         return Err(RequestError::IoError(err));
     };

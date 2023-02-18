@@ -125,8 +125,8 @@ impl ToLabel for Link {
     fn to_label(&self, font: &FontDescription) -> Label {
         gtk::Label::builder()
             .use_markup(true)
-            .tooltip_text(&self.to_string())
-            .label(&self.to_markup(font))
+            .tooltip_text(self.to_string())
+            .label(self.to_markup(font))
             .cursor(&Cursor::from_name("pointer", None).unwrap())
             .build()
     }
@@ -155,7 +155,7 @@ impl ToLabel for ExternLink {
             .selectable(true)
             .use_markup(true)
             .tooltip_text(&self.url)
-            .label(&self.to_markup(font))
+            .label(self.to_markup(font))
             .cursor(&Cursor::from_name("pointer", None).unwrap())
             .build()
     }

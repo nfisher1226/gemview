@@ -47,9 +47,8 @@ impl TryFrom<&Vec<u8>> for Response {
         if raw.is_empty() {
             return Err(ResponseParseError::EmptyResponse);
         }
-        let lf = match raw.iter().enumerate().find(|(_, b)| **b == b'\n') {
-            Some((i, _)) => i,
-            None => return Err(ResponseParseError::InvalidResponseHeader),
+        let Some((lf, _)) = raw.iter().enumerate().find(|(_, b)| **b == b'\n') else {
+            return Err(ResponseParseError::InvalidResponseHeader);
         };
         let header: &str = match std::str::from_utf8(&raw[..lf]) {
             Ok(s) => s,
@@ -108,9 +107,7 @@ pub(crate) fn request(url: &Url) -> Result<Response, Box<dyn Error>> {
         return Err(RequestError::DnsError.into());
     };
     let mut it = host_str.to_socket_addrs()?;
-    let socket_addrs = if let Some(s) = it.next() {
-        s
-    } else {
+    let Some(socket_addrs) = it.next() else {
         let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
         return Err(err.into());
     };
@@ -142,9 +139,7 @@ pub(crate) fn post(url: &Url, data: &[u8]) -> Result<Response, Box<dyn Error>> {
         None => return Err(RequestError::DnsError.into()),
     };
     let mut it = host_str.to_socket_addrs()?;
-    let socket_addrs = if let Some(s) = it.next() {
-        s
-    } else {
+    let Some(socket_addrs) = it.next() else {
         let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
         return Err(err.into());
     };

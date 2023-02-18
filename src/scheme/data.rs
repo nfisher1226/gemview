@@ -29,16 +29,14 @@ impl TryFrom<&str> for DataUrl {
     type Error = &'static str;
 
     fn try_from(url: &str) -> Result<Self, Self::Error> {
-        let (scheme, remainder) = match url.split_once(':') {
-            Some((s, r)) => (s, r),
-            None => return Err("Malformed url"),
+        let Some((scheme, remainder)) = url.split_once(':') else {
+            return Err("Malformed url");
         };
         if scheme != "data" {
             return Err("Not a data url");
         }
-        let (mime, data) = match remainder.split_once(',') {
-            Some((m, d)) => (m, d),
-            None => return Err("Malformed url"),
+        let Some((mime, data)) = remainder.split_once(',') else {
+            return Err("Malformed url");
         };
         let base64 = mime.contains("base64");
         let mime = match mime.split_once(';') {

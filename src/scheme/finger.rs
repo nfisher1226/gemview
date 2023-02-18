@@ -17,9 +17,7 @@ pub(crate) fn request(url: &Url) -> Result<Content, Box<dyn Error>> {
         return Err(RequestError::DnsError.into());
     };
     let mut it = host_str.to_socket_addrs()?;
-    let socket_addrs = if let Some(s) = it.next() {
-        s
-    } else {
+    let Some(socket_addrs) = it.next() else {
         let err = std::io::Error::new(std::io::ErrorKind::Other, "No data retrieved");
         return Err(err.into());
     };

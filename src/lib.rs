@@ -28,6 +28,7 @@ use {
     upload::UploadWidget,
 };
 
+#[derive(Clone, Copy)]
 enum TextSize {
     Paragraph,
     H1,
@@ -57,19 +58,19 @@ impl GemView {
             .property("margin-end", &45.to_value())
             .property("margin-top", &25.to_value())
             .property("margin-bottom", &25.to_value())
-            .property("wrap-mode", &gtk::WrapMode::Word)
+            .property("wrap-mode", gtk::WrapMode::Word)
             .build()
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn with_label(label: &str) -> Self {
         Object::builder()
-            .property("label", &label)
+            .property("label", label)
             .property("margin-start", &45.to_value())
             .property("margin-end", &45.to_value())
             .property("margin-top", &25.to_value())
             .property("margin-bottom", &25.to_value())
-            .property("wrap-mode", &gtk::WrapMode::Word)
+            .property("wrap-mode", gtk::WrapMode::Word)
             .build()
     }
 
@@ -291,7 +292,7 @@ impl GemView {
         let label = gtk::Label::builder()
             .use_markup(true)
             .css_classes(vec!["preformatted".to_string()])
-            .label(&format!(
+            .label(format!(
                 "<span font=\"{}\">{}</span>",
                 font.to_str(),
                 &text,
@@ -499,7 +500,7 @@ impl GemView {
         let anchor = buf.create_child_anchor(&mut iter);
         let label = gtk::Label::builder()
             .use_markup(true)
-            .label(&format!(
+            .label(format!(
                 "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
                 start,
                 self.font_paragraph().to_str(),
@@ -509,7 +510,7 @@ impl GemView {
                     None => self.wrap_text(&link, self.font_paragraph().size()),
                 },
             ))
-            .tooltip_text(&if link.len() < 80 {
+            .tooltip_text(if link.len() < 80 {
                 link
             } else {
                 format!("{}...", &link[..80])
