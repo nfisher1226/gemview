@@ -1,10 +1,6 @@
 mod imp;
 
-use gtk::{
-    glib::{self, Object},
-    prelude::*,
-    subclass::prelude::*,
-};
+use gtk::glib::{self, Object};
 
 glib::wrapper! {
     pub struct UploadWidget(ObjectSubclass<imp::UploadWidget>)
@@ -21,6 +17,8 @@ impl Default for UploadWidget {
 
 impl UploadWidget {
     pub fn new() -> Self {
-        Object::new(&[("orientation", &gtk::Orientation::Vertical)])
+        Object::builder()
+            .property("orientation", &gtk::Orientation::Vertical)
+            .build()
     }
 }

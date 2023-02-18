@@ -52,25 +52,25 @@ impl Default for GemView {
 impl GemView {
     #[allow(clippy::must_use_candidate)]
     pub fn new() -> Self {
-        Object::new(&[
-            ("margin-start", &45.to_value()),
-            ("margin-end", &45.to_value()),
-            ("margin-top", &25.to_value()),
-            ("margin-bottom", &25.to_value()),
-            ("wrap-mode", &gtk::WrapMode::Word),
-        ])
+        Object::builder()
+            .property("margin-start", &45.to_value())
+            .property("margin-end", &45.to_value())
+            .property("margin-top", &25.to_value())
+            .property("margin-bottom", &25.to_value())
+            .property("wrap-mode", &gtk::WrapMode::Word)
+            .build()
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn with_label(label: &str) -> Self {
-        Object::new(&[
-            ("label", &label),
-            ("margin-start", &45.to_value()),
-            ("margin-end", &45.to_value()),
-            ("margin-top", &25.to_value()),
-            ("margin-bottom", &25.to_value()),
-            ("wrap-mode", &gtk::WrapMode::Word),
-        ])
+        Object::builder()
+            .property("label", &label)
+            .property("margin-start", &45.to_value())
+            .property("margin-end", &45.to_value())
+            .property("margin-top", &25.to_value())
+            .property("margin-bottom", &25.to_value())
+            .property("wrap-mode", &gtk::WrapMode::Word)
+            .build()
     }
 
     fn add_actions(&self) {
@@ -274,7 +274,7 @@ impl GemView {
     pub fn render_text(&self, data: &str) {
         self.clear();
         let (buf, mut iter) = self.get_iter();
-        let prebox = gtk::builders::BoxBuilder::new()
+        let prebox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .hexpand(true)
             .halign(gtk::Align::Fill)
@@ -288,7 +288,7 @@ impl GemView {
         self.add_child_at_anchor(&prebox, &anchor);
         let text = glib::markup_escape_text(data);
         let font = self.font_pre();
-        let label = gtk::builders::LabelBuilder::new()
+        let label = gtk::Label::builder()
             .use_markup(true)
             .css_classes(vec!["preformatted".to_string()])
             .label(&format!(
@@ -304,9 +304,11 @@ impl GemView {
     pub fn render_image_from_bytes(&self, bytes: &Vec<u8>) {
         let bytes = gtk::glib::Bytes::from(bytes);
         let stream = MemoryInputStream::from_bytes(&bytes);
-        if let Ok(pixbuf) = Pixbuf::from_stream(&stream, Option::<&Cancellable>::None) {
-            let img = self.render_pixbuf(&pixbuf);
-            img.set_pixel_size(self.height() - 50);
+        let width = self.size(gtk::Orientation::Horizontal);
+        if let Ok(pixbuf) =
+            Pixbuf::from_stream_at_scale(&stream, width, -1, true, Option::<&Cancellable>::None)
+        {
+            let _img = self.render_pixbuf(&pixbuf);
         }
     }
 
@@ -314,12 +316,11 @@ impl GemView {
     fn render_pixbuf(&self, pixbuf: &gtk::gdk_pixbuf::Pixbuf) -> gtk::Image {
         self.clear();
         let (buf, mut iter) = self.get_iter();
-        let anchor = buf.create_child_anchor(&mut iter);
         let image = gtk::Image::from_pixbuf(Some(pixbuf));
         image.set_hexpand(true);
         image.set_halign(gtk::Align::Fill);
         image.set_css_classes(&["image"]);
-        self.add_child_at_anchor(&image, &anchor);
+        buf.insert_paintable(&mut iter, &image.paintable().unwrap());
         image
     }
 
@@ -354,7 +355,7 @@ impl GemView {
                     let font = self.font_quote();
                     let (buf, mut iter) = self.get_iter();
                     let anchor = buf.create_child_anchor(&mut iter);
-                    let quotebox = gtk::builders::BoxBuilder::new()
+                    let quotebox = gtk::Box::builder()
                         .orientation(gtk::Orientation::Vertical)
                         .hexpand(true)
                         .halign(gtk::Align::Fill)
@@ -364,7 +365,7 @@ impl GemView {
                         .margin_end(8)
                         .css_classes(vec!["blockquote".to_string()])
                         .build();
-                    let label = gtk::builders::LabelBuilder::new()
+                    let label = gtk::Label::builder()
                         .selectable(true)
                         .use_markup(true)
                         .css_classes(vec!["blockquote".to_string()])
@@ -380,7 +381,7 @@ impl GemView {
                     buf.insert(&mut iter, "\n");
                 }
                 GemtextNode::Preformatted(text, _) => {
-                    let prebox = gtk::builders::BoxBuilder::new()
+                    let prebox = gtk::Box::builder()
                         .orientation(gtk::Orientation::Vertical)
                         .hexpand(true)
                         .halign(gtk::Align::Fill)
@@ -394,7 +395,7 @@ impl GemView {
                     let anchor = buf.create_child_anchor(&mut iter);
                     self.add_child_at_anchor(&prebox, &anchor);
                     let font = self.font_pre();
-                    let label = gtk::builders::LabelBuilder::new()
+                    let label = gtk::Label::builder()
                         .selectable(true)
                         .use_markup(true)
                         .css_classes(vec!["preformatted".to_string()])
@@ -428,11 +429,7 @@ impl GemView {
     fn insert_list_item(&self, text: &str) {
         let (buf, mut iter) = self.get_iter();
         let tag = self.imp().paragraph_tag.borrow();
-        buf.insert_with_tags(
-            &mut iter,
-            &format!("  • {text}"),
-            &[&tag],
-        );
+        buf.insert_with_tags(&mut iter, &format!("  • {text}"), &[&tag]);
         iter = buf.end_iter();
         buf.insert(&mut iter, "\n");
     }
@@ -500,7 +497,7 @@ impl GemView {
         let (buf, mut iter) = self.get_iter();
         let link = link.replace('&', "&amp;");
         let anchor = buf.create_child_anchor(&mut iter);
-        let label = gtk::builders::LabelBuilder::new()
+        let label = gtk::Label::builder()
             .use_markup(true)
             .label(&format!(
                 "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",

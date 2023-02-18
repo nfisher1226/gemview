@@ -1,3 +1,4 @@
+use base64::{Engine as _, engine::general_purpose};
 use std::error::Error;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -70,7 +71,7 @@ impl DataUrl {
         match self.mime {
             MimeType::TextPlain | MimeType::TextGemini => {
                 let pl = if self.base64 {
-                    let tmp = base64::decode(&self.data)?;
+                    let tmp = general_purpose::URL_SAFE.decode(&self.data)?;
                     String::from_utf8(tmp)?
                 } else {
                     urlencoding::decode(&self.data)?.to_string()
@@ -82,7 +83,7 @@ impl DataUrl {
             | MimeType::ImageSvg
             | MimeType::ImageOther => {
                 let pl = if self.base64 {
-                    base64::decode(&self.data)?
+                    general_purpose::URL_SAFE.decode(&self.data)?
                 } else {
                     self.data.as_bytes().to_vec()
                 };

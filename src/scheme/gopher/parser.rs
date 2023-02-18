@@ -123,7 +123,7 @@ impl ToMarkup for Link {
 
 impl ToLabel for Link {
     fn to_label(&self, font: &FontDescription) -> Label {
-        gtk::builders::LabelBuilder::new()
+        gtk::Label::builder()
             .use_markup(true)
             .tooltip_text(&self.to_string())
             .label(&self.to_markup(font))
@@ -151,7 +151,7 @@ impl ToMarkup for ExternLink {
 
 impl ToLabel for ExternLink {
     fn to_label(&self, font: &FontDescription) -> Label {
-        gtk::builders::LabelBuilder::new()
+        gtk::Label::builder()
             .selectable(true)
             .use_markup(true)
             .tooltip_text(&self.url)
