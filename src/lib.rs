@@ -18,13 +18,18 @@ use {
 };
 
 mod imp;
-pub mod scheme;
+mod traits;
 mod upload;
+use traits::ToLabel;
+
 use {
-    data::{Data, DataUrl, MimeType},
-    gemini::parser::GemtextNode,
-    gopher::GopherMap,
-    scheme::{data, finger, gemini, gopher, spartan, Content, Response, ToLabel},
+    bucky::data::{Data, DataUrl, MimeType},
+    bucky::file,
+    bucky::finger,
+    bucky::gemini::{self, parser::GemtextNode},
+    bucky::gopher::{self, GopherMap},
+    bucky::prelude::{Content, Input, Response},
+    bucky::spartan,
     upload::UploadWidget,
 };
 
@@ -292,11 +297,7 @@ impl GemView {
         let label = gtk::Label::builder()
             .use_markup(true)
             .css_classes(vec!["preformatted".to_string()])
-            .label(format!(
-                "<span font=\"{}\">{}</span>",
-                font.to_str(),
-                &text,
-            ))
+            .label(format!("<span font=\"{}\">{}</span>", font.to_str(), &text,))
             .build();
         prebox.append(&label);
     }
@@ -524,7 +525,7 @@ impl GemView {
     }
 
     /// Renders a `GopherMap`
-    fn render_gopher(&self, content: &scheme::Content) {
+    fn render_gopher(&self, content: &Content) {
         self.clear();
         let buf = self.buffer();
         let mut iter;
@@ -721,7 +722,7 @@ impl GemView {
                 return;
             }
         }
-        if let Ok(content) = Content::try_from(url.clone()) {
+        if let Ok(content) = file::try_open(url) {
             match content.mime {
                 s if s.starts_with("text/gemini") => {
                     let url = url.to_string();
@@ -853,7 +854,7 @@ impl GemView {
                     Err(e) => {
                         let estr = format!("{e:?}");
                         sender
-                            .send(scheme::Response::Error(estr))
+                            .send(Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -869,10 +870,10 @@ impl GemView {
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
-                scheme::Response::Success(content) => {
+                Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url);
                 }
-                scheme::Response::Error(estr) => {
+                Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }
                 _ => unreachable!(),
@@ -892,7 +893,7 @@ impl GemView {
                     Err(e) => {
                         let estr = format!("{e:?}");
                         sender
-                            .send(scheme::Response::Error(estr))
+                            .send(Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -908,14 +909,14 @@ impl GemView {
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
-                scheme::Response::Success(content) => {
+                Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url);
                 }
-                scheme::Response::Redirect(_s) => {}
-                scheme::Response::Error(estr) => {
+                Response::Redirect(_s) => {}
+                Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }
-                scheme::Response::RequestInput(_) => unreachable!(),
+                Response::RequestInput(_) => unreachable!(),
             }
             Continue(false)
         });
@@ -932,7 +933,7 @@ impl GemView {
                     Err(e) => {
                         let estr = format!("{e:?}");
                         sender
-                            .send(scheme::Response::Error(estr))
+                            .send(Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -945,7 +946,7 @@ impl GemView {
                             Err(e) => {
                                 let estr = format!("{e:?}");
                                 sender
-                                    .send(scheme::Response::Error(estr))
+                                    .send(Response::Error(estr))
                                     .expect("Cannot send data");
                                 break;
                             }
@@ -960,31 +961,31 @@ impl GemView {
                             response.meta
                         };
                         let url = Some(url.to_string());
-                        let content = scheme::Content {
+                        let content = Content {
                             url,
                             mime,
                             bytes: response.data,
                         };
                         sender
-                            .send(scheme::Response::Success(content))
+                            .send(Response::Success(content))
                             .expect("Cannot send data");
                         break;
                     }
                     gemini::protocol::StatusCode::Input(sensitive) => {
-                        let input = scheme::Input {
+                        let input = Input {
                             meta: response.meta,
                             url: url.to_string(),
                             sensitive,
                         };
                         sender
-                            .send(scheme::Response::RequestInput(input))
+                            .send(Response::RequestInput(input))
                             .expect("Cannot send data");
                         break;
                     }
                     s => {
                         let estr = format!("{s:?}");
                         sender
-                            .send(scheme::Response::Error(estr))
+                            .send(Response::Error(estr))
                             .expect("Cannot send data");
                         break;
                     }
@@ -994,7 +995,7 @@ impl GemView {
         let viewer = self.clone();
         receiver.attach(None, move |response| {
             match response {
-                scheme::Response::RequestInput(input) => {
+                Response::RequestInput(input) => {
                     let signal = if input.sensitive == 1 {
                         "request-input-sensitive"
                     } else {
@@ -1003,11 +1004,11 @@ impl GemView {
                     viewer.append_history(&input.url);
                     viewer.emit_by_name::<()>(signal, &[&input.meta, &input.url]);
                 }
-                scheme::Response::Success(content) => {
+                Response::Success(content) => {
                     viewer.process_gemini_response_success(&content, &url);
                 }
-                scheme::Response::Redirect(_s) => {}
-                scheme::Response::Error(estr) => {
+                Response::Redirect(_s) => {}
+                Response::Error(estr) => {
                     viewer.emit_by_name::<()>("page-load-failed", &[&estr]);
                 }
             }
