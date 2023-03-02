@@ -7,7 +7,7 @@ use {
     gtk::{
         gdk_pixbuf::Pixbuf,
         gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup},
-        glib,
+        glib::{self, GString},
         pango::FontDescription,
         prelude::*,
         subclass::prelude::*,
@@ -77,6 +77,41 @@ impl GemView {
             .property("margin-bottom", &25.to_value())
             .property("wrap-mode", gtk::WrapMode::Word)
             .build()
+    }
+
+    fn bind_properties(&self) {
+        self.bind_property("font-paragraph", &self.paragraph_tag(), "font")
+            .transform_to(|_, font: FontDescription| {
+                Some(GString::from(font.to_str()))
+            })
+            .transform_from(|_, font| {
+                Some(FontDescription::from_string(font))
+            })
+            .build();
+        self.bind_property("font-h1", &self.h1_tag(), "font")
+            .transform_to(|_, font: FontDescription| {
+                Some(GString::from(font.to_str()))
+            })
+            .transform_from(|_, font| {
+                Some(FontDescription::from_string(font))
+            })
+            .build();
+        self.bind_property("font-h2", &self.h2_tag(), "font")
+            .transform_to(|_, font: FontDescription| {
+                Some(GString::from(font.to_str()))
+            })
+            .transform_from(|_, font| {
+                Some(FontDescription::from_string(font))
+            })
+            .build();
+        self.bind_property("font-h3", &self.h3_tag(), "font")
+            .transform_to(|_, font: FontDescription| {
+                Some(GString::from(font.to_str()))
+            })
+            .transform_from(|_, font| {
+                Some(FontDescription::from_string(font))
+            })
+            .build();
     }
 
     fn add_actions(&self) {
@@ -194,80 +229,6 @@ impl GemView {
     /// be called directly
     pub fn set_buffer_content(&self, content: &[u8]) {
         self.imp().buffer.borrow_mut().content = content.to_vec();
-    }
-
-    #[must_use]
-    /// Returns the font used to render "normal" elements
-    pub fn font_paragraph(&self) -> FontDescription {
-        self.imp().font_paragraph.borrow().clone()
-    }
-
-    /// Sets the font used to render "normal" elements
-    pub fn set_font_paragraph(&self, font: FontDescription) {
-        let tag = self.imp().paragraph_tag.borrow_mut();
-        tag.set_font_desc(Some(&font));
-        *self.imp().font_paragraph.borrow_mut() = font;
-    }
-
-    #[must_use]
-    /// Returns the font used to render "preformatted" elements
-    pub fn font_pre(&self) -> FontDescription {
-        self.imp().font_pre.borrow().clone()
-    }
-
-    /// Sets the font used to render "preformatted" elements
-    pub fn set_font_pre(&self, font: FontDescription) {
-        *self.imp().font_pre.borrow_mut() = font;
-    }
-
-    #[must_use]
-    /// Returns the font used to render "blockte" elements
-    pub fn font_quote(&self) -> FontDescription {
-        self.imp().font_quote.borrow().clone()
-    }
-
-    /// Sets the font used to render "blockquote" elements
-    pub fn set_font_quote(&self, font: FontDescription) {
-        *self.imp().font_quote.borrow_mut() = font;
-    }
-
-    #[must_use]
-    /// Returns the font used to render H1 heading elements
-    pub fn font_h1(&self) -> FontDescription {
-        self.imp().font_h1.borrow().clone()
-    }
-
-    /// Sets the font used to render H1 heading elements
-    pub fn set_font_h1(&self, font: FontDescription) {
-        let tag = self.imp().h1_tag.borrow_mut();
-        tag.set_font_desc(Some(&font));
-        *self.imp().font_h1.borrow_mut() = font;
-    }
-
-    #[must_use]
-    /// Returns the font used to render H2 heading elements
-    pub fn font_h2(&self) -> FontDescription {
-        self.imp().font_h2.borrow().clone()
-    }
-
-    /// Sets the font used to render H2 heading elements
-    pub fn set_font_h2(&self, font: FontDescription) {
-        let tag = self.imp().h2_tag.borrow_mut();
-        tag.set_font_desc(Some(&font));
-        *self.imp().font_h2.borrow_mut() = font;
-    }
-
-    #[must_use]
-    /// Returns the font used to render H3 heading elements
-    pub fn font_h3(&self) -> FontDescription {
-        self.imp().font_h3.borrow().clone()
-    }
-
-    /// Sets the font used to render H3 heading elements
-    pub fn set_font_h3(&self, font: FontDescription) {
-        let tag = self.imp().h3_tag.borrow_mut();
-        tag.set_font_desc(Some(&font));
-        *self.imp().font_h3.borrow_mut() = font;
     }
 
     fn get_iter(&self) -> (gtk::TextBuffer, gtk::TextIter) {

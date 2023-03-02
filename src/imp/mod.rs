@@ -1,7 +1,7 @@
 use {
     gtk::{
         glib,
-        glib::subclass::Signal,
+        glib::{subclass::Signal, Properties},
         pango::{FontDescription, Style, Weight},
         prelude::*,
         subclass::prelude::*,
@@ -15,19 +15,30 @@ pub use buffer::Buffer;
 mod history;
 pub(crate) use history::History;
 
-#[derive(Default)]
+#[derive(Default, Properties)]
+#[properties(wrapper_type = super::GemView)]
 pub struct GemView {
     pub(crate) history: RefCell<History>,
     pub(crate) buffer: RefCell<Buffer>,
+    #[property(get, set)]
     pub(crate) font_paragraph: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) font_pre: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) font_quote: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) font_h1: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) font_h2: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) font_h3: RefCell<FontDescription>,
+    #[property(get, set)]
     pub(crate) paragraph_tag: RefCell<gtk::TextTag>,
+    #[property(get, set)]
     pub(crate) h1_tag: RefCell<gtk::TextTag>,
+    #[property(get, set)]
     pub(crate) h2_tag: RefCell<gtk::TextTag>,
+    #[property(get, set)]
     pub(crate) h3_tag: RefCell<gtk::TextTag>,
 }
 
@@ -41,18 +52,41 @@ impl ObjectSubclass for GemView {
 
 // Trait shared by all GObjects
 impl ObjectImpl for GemView {
+    fn properties() -> &'static [glib::ParamSpec] {
+        Self::derived_properties()
+    }
+
+    fn set_property(&self, _id: usize, _value: &glib::Value, _pspec: &glib::ParamSpec) {
+        Self::derived_set_property(self, _id, _value, _pspec)
+    }
+
+    fn property(&self, _id: usize, _pspec: &glib::ParamSpec) -> glib::Value {
+        Self::derived_property(self, _id, _pspec)
+    }
+
     fn constructed(&self) {
         self.parent_constructed();
         let obj = self.obj();
         obj.set_editable(false);
         obj.set_cursor_visible(false);
         *self.history.borrow_mut() = History::default();
+        let buffer = obj.buffer();
         let mut font = FontDescription::new();
         font.set_family("Sans");
         font.set_style(Style::Normal);
         font.set_weight(Weight::Book);
         font.set_size(12);
-        *self.font_paragraph.borrow_mut() = font.clone();
+        let normal = buffer
+            .create_tag(
+                Some("normal"),
+                &[
+                    ("font", &font.to_string()),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        obj.set_paragraph_tag(normal);
+        obj.set_font_paragraph(&font);
         *self.font_quote.borrow_mut() = font.clone();
         font.set_family("Monospace");
         *self.font_pre.borrow_mut() = font.clone();
@@ -67,17 +101,6 @@ impl ObjectImpl for GemView {
         font.set_size(18);
         *self.font_h1.borrow_mut() = font;
         obj.add_actions();
-        let buffer = obj.buffer();
-        let normal = buffer
-            .create_tag(
-                Some("normal"),
-                &[
-                    ("font", &"Sans Normal 12"),
-                    ("justification", &gtk::Justification::Fill),
-                ],
-            )
-            .unwrap();
-        *self.paragraph_tag.borrow_mut() = normal;
         let h1tag = buffer
             .create_tag(
                 Some("h1"),
@@ -108,6 +131,7 @@ impl ObjectImpl for GemView {
             )
             .unwrap();
         *self.h3_tag.borrow_mut() = h3tag;
+        obj.bind_properties();
     }
 
     fn signals() -> &'static [Signal] {
