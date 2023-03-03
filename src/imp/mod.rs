@@ -21,17 +21,17 @@ pub struct GemView {
     pub(crate) history: RefCell<History>,
     pub(crate) buffer: RefCell<Buffer>,
     #[property(get, set)]
-    pub(crate) font_paragraph: RefCell<FontDescription>,
+    pub(crate) font_paragraph: RefCell<String>,
     #[property(get, set)]
-    pub(crate) font_pre: RefCell<FontDescription>,
+    pub(crate) font_pre: RefCell<String>,
     #[property(get, set)]
-    pub(crate) font_quote: RefCell<FontDescription>,
+    pub(crate) font_quote: RefCell<String>,
     #[property(get, set)]
-    pub(crate) font_h1: RefCell<FontDescription>,
+    pub(crate) font_h1: RefCell<String>,
     #[property(get, set)]
-    pub(crate) font_h2: RefCell<FontDescription>,
+    pub(crate) font_h2: RefCell<String>,
     #[property(get, set)]
-    pub(crate) font_h3: RefCell<FontDescription>,
+    pub(crate) font_h3: RefCell<String>,
     #[property(get, set)]
     pub(crate) paragraph_tag: RefCell<gtk::TextTag>,
     #[property(get, set)]
@@ -86,51 +86,51 @@ impl ObjectImpl for GemView {
             )
             .unwrap();
         obj.set_paragraph_tag(normal);
-        obj.set_font_paragraph(&font);
-        *self.font_quote.borrow_mut() = font.clone();
+        obj.set_font_paragraph(font.to_string());
+        obj.set_font_quote(font.to_string());
         font.set_family("Monospace");
-        *self.font_pre.borrow_mut() = font.clone();
+        obj.set_font_pre(font.to_string());
         font.set_family("Sans");
         font.set_weight(Weight::Medium);
         font.set_size(14);
-        *self.font_h3.borrow_mut() = font.clone();
+        obj.set_font_h3(font.to_string());
+        let h3tag = buffer
+            .create_tag(
+                Some("h3"),
+                &[
+                    ("font", &font.to_string()),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        obj.set_h3_tag(h3tag);
         font.set_weight(Weight::Bold);
         font.set_size(16);
-        *self.font_h2.borrow_mut() = font.clone();
+        obj.set_font_h2(font.to_string());
+        let h2tag = buffer
+            .create_tag(
+                Some("h2"),
+                &[
+                    ("font", &font.to_string()),
+                    ("justification", &gtk::Justification::Fill),
+                ],
+            )
+            .unwrap();
+        obj.set_h2_tag(h2tag);
         font.set_weight(Weight::Heavy);
         font.set_size(18);
-        *self.font_h1.borrow_mut() = font;
+        obj.set_font_h1(font.to_string());
         obj.add_actions();
         let h1tag = buffer
             .create_tag(
                 Some("h1"),
                 &[
-                    ("font", &"Sans Normal 18"),
+                    ("font", &font.to_string()),
                     ("justification", &gtk::Justification::Fill),
                 ],
             )
             .unwrap();
-        *self.h1_tag.borrow_mut() = h1tag;
-        let h2tag = buffer
-            .create_tag(
-                Some("h2"),
-                &[
-                    ("font", &"Sans Normal 16"),
-                    ("justification", &gtk::Justification::Fill),
-                ],
-            )
-            .unwrap();
-        *self.h2_tag.borrow_mut() = h2tag;
-        let h3tag = buffer
-            .create_tag(
-                Some("h3"),
-                &[
-                    ("font", &"Sans Normal 14"),
-                    ("justification", &gtk::Justification::Fill),
-                ],
-            )
-            .unwrap();
-        *self.h3_tag.borrow_mut() = h3tag;
+        obj.set_h1_tag(h1tag);
         obj.bind_properties();
     }
 

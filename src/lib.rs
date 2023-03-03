@@ -7,7 +7,7 @@ use {
     gtk::{
         gdk_pixbuf::Pixbuf,
         gio::{Cancellable, MemoryInputStream, Menu, MenuItem, SimpleAction, SimpleActionGroup},
-        glib::{self, GString},
+        glib,
         pango::FontDescription,
         prelude::*,
         subclass::prelude::*,
@@ -81,36 +81,12 @@ impl GemView {
 
     fn bind_properties(&self) {
         self.bind_property("font-paragraph", &self.paragraph_tag(), "font")
-            .transform_to(|_, font: FontDescription| {
-                Some(GString::from(font.to_str()))
-            })
-            .transform_from(|_, font| {
-                Some(FontDescription::from_string(font))
-            })
             .build();
         self.bind_property("font-h1", &self.h1_tag(), "font")
-            .transform_to(|_, font: FontDescription| {
-                Some(GString::from(font.to_str()))
-            })
-            .transform_from(|_, font| {
-                Some(FontDescription::from_string(font))
-            })
             .build();
         self.bind_property("font-h2", &self.h2_tag(), "font")
-            .transform_to(|_, font: FontDescription| {
-                Some(GString::from(font.to_str()))
-            })
-            .transform_from(|_, font| {
-                Some(FontDescription::from_string(font))
-            })
             .build();
         self.bind_property("font-h3", &self.h3_tag(), "font")
-            .transform_to(|_, font: FontDescription| {
-                Some(GString::from(font.to_str()))
-            })
-            .transform_from(|_, font| {
-                Some(FontDescription::from_string(font))
-            })
             .build();
     }
 
@@ -258,7 +234,7 @@ impl GemView {
         let label = gtk::Label::builder()
             .use_markup(true)
             .css_classes(vec!["preformatted".to_string()])
-            .label(format!("<span font=\"{}\">{}</span>", font.to_str(), &text,))
+            .label(format!("<span font=\"{font}\">{text}</span>"))
             .build();
         prebox.append(&label);
     }
@@ -333,9 +309,11 @@ impl GemView {
                         .use_markup(true)
                         .css_classes(vec!["blockquote".to_string()])
                         .label(&format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
-                            self.wrap_text(&text, self.font_paragraph().size()),
+                            "<span font=\"{font}\">{}</span>",
+                            self.wrap_text(
+                                &text,
+                                FontDescription::from_string(&self.font_paragraph()).size()
+                            ),
                         ))
                         .build();
                     quotebox.append(&label);
@@ -363,8 +341,7 @@ impl GemView {
                         .use_markup(true)
                         .css_classes(vec!["preformatted".to_string()])
                         .label(&format!(
-                            "<span font=\"{}\">{}</span>",
-                            font.to_str(),
+                            "<span font=\"{font}\">{}</span>",
                             glib::markup_escape_text(&text)
                         ))
                         .build();
@@ -465,11 +442,17 @@ impl GemView {
             .label(format!(
                 "{}<span font=\"{}\"><a href=\"{}\">{}</a></span>",
                 start,
-                self.font_paragraph().to_str(),
+                self.font_paragraph(),
                 &link,
                 match text {
-                    Some(t) => self.wrap_text(&t, self.font_paragraph().size()),
-                    None => self.wrap_text(&link, self.font_paragraph().size()),
+                    Some(t) => self.wrap_text(
+                        &t,
+                        FontDescription::from_string(&self.font_paragraph()).size()
+                    ),
+                    None => self.wrap_text(
+                        &link,
+                        FontDescription::from_string(&self.font_paragraph()).size()
+                    ),
                 },
             ))
             .tooltip_text(if link.len() < 80 {
@@ -504,7 +487,7 @@ impl GemView {
                     );
                 }
                 gopher::parser::LineType::Link(link) => {
-                    let label = link.to_label(&self.font_pre());
+                    let label = link.to_label(&FontDescription::from_string(&self.font_pre()));
                     self.insert_gopher_link(&label);
                     label.set_extra_menu(Some(&Self::context_menu(&link.to_string())));
                     let viewer = self.clone();
@@ -514,7 +497,7 @@ impl GemView {
                     });
                 }
                 gopher::parser::LineType::Query(link) => {
-                    let label = link.to_label(&self.font_pre());
+                    let label = link.to_label(&FontDescription::from_string(&self.font_pre()));
                     self.insert_gopher_link(&label);
                     let viewer = self.clone();
                     label.connect_activate_link(move |_, link| {
@@ -526,7 +509,7 @@ impl GemView {
                     });
                 }
                 gopher::parser::LineType::Http(link) => {
-                    let label = link.to_label(&self.font_pre());
+                    let label = link.to_label(&FontDescription::from_string(&self.font_pre()));
                     self.insert_gopher_link(&label);
                     label.set_extra_menu(Some(&Self::context_menu(&link.url)));
                     let viewer = self.clone();
